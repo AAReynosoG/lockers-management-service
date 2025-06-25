@@ -13,3 +13,13 @@
  ```
  npm install typeorm
  ```
+
+`class-validator`
+ ```
+ $ npm i --save class-validator
+ ```
+
+`class-transformer`
+ ```
+ $ npm i --save class-transformer
+ ```
