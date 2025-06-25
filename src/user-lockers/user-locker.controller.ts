@@ -3,25 +3,31 @@ import {
   Get,
   Param,
   Query,
-  ParseIntPipe,
   NotFoundException,
   ParseEnumPipe,
-  DefaultValuePipe,
+  HttpCode,
 } from '@nestjs/common';
 import { UserLockerService } from './user-locker.service';
-import { LockerUserRoleEnum } from '../commons/enums/locker-user-role.enum';
+import { PaginationDto } from '../commons/dto/pagination.dto';
+import { OrganizationIdParamDto } from './dto/organization-id-param.dto';
+import { OptionalRoleDto} from '../commons/dto/role-filter.dto';
 
 @Controller('api')
 export class UserLockerController {
   constructor(private readonly service: UserLockerService) {}
 
+  @HttpCode(200)
   @Get('user-list/:organizationId')
   async getUsersWithLockers(
-    @Param('organizationId', ParseIntPipe) organizationId: number,
-    @Query('page', new DefaultValuePipe(1)) page: number,
-    @Query('limit', new DefaultValuePipe(10)) limit: number,
-    @Query('role', new ParseEnumPipe(LockerUserRoleEnum, {optional: true})) role?: LockerUserRoleEnum,
+    @Param() paramsDto: OrganizationIdParamDto,
+    @Query() paginationDto: PaginationDto,
+    @Query() roleDto: OptionalRoleDto
   ) {
+
+    const { organizationId } = paramsDto;
+    const { page, limit } = paginationDto;
+    const { role } = roleDto;
+
     const data = await this.service.findUsersByOrganizationWithLockers(organizationId, +page, +limit, role);
 
     if (!data) {
@@ -35,7 +41,3 @@ export class UserLockerController {
     };
   }
 }
-// 4
-// 1
-// user1@test.com
-// user

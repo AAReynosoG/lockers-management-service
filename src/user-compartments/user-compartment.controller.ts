@@ -2,14 +2,12 @@ import {
   Controller,
   Put,
   Param,
-  ParseIntPipe,
   NotFoundException,
   Body,
-  ParseEnumPipe,
   HttpCode,
 } from '@nestjs/common';
-import { LockerUserRoleEnum } from '../commons/enums/locker-user-role.enum';
 import { UserCompartmentService } from './user-compartment.service';
+import { UserToCompartmentBodyDto, UserToCompartmentRouteDto } from './dto/user-to-compartment.dto';
 
 @Controller('api')
 export class UserCompartmentController {
@@ -19,13 +17,14 @@ export class UserCompartmentController {
   @HttpCode(201)
   @Put('lockers/:lockerId/:compartmentNumber/users')
   async assignUserToCompartment(
-    @Param('lockerId', ParseIntPipe) lockerId: number,
-    @Param('compartmentNumber', ParseIntPipe) compartmentNumber: number,
-    @Body('user_email') userEmail: string,
-    @Body('role', new ParseEnumPipe(LockerUserRoleEnum)) role: LockerUserRoleEnum,
+    @Param() userToCompartmentRouteDto: UserToCompartmentRouteDto,
+    @Body() userToCompartmentBodyDto: UserToCompartmentBodyDto
   ) {
 
-    const data = await this.service.assignUserToLockerCompartment(lockerId, compartmentNumber, userEmail, role)
+    const { lockerId, compartmentNumber } = userToCompartmentRouteDto;
+    const { role, user_email } = userToCompartmentBodyDto;
+
+    const data = await this.service.assignUserToLockerCompartment(lockerId, compartmentNumber, user_email, role)
 
     if (!data) {
       throw new NotFoundException({ success: false, message: 'Resource not found', errors: null });
