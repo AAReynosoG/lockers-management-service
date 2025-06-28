@@ -23,3 +23,18 @@
  ```
  $ npm i --save class-transformer
  ```
+
+`resend`
+ ```
+ $ npm i resend
+ ```
+
+`handlebars`
+ ```
+ $ npm i handlebars
+ ```
+
+`axios`
+ ```
+ $ npm i axios
+ ```
