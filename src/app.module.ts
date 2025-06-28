@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserLockerModule } from './user-lockers/user-locker.module';
 import { UserCompartmentModule } from './user-compartments/user-compartment.module';
 import { ConfigModule } from '@nestjs/config';
+import { SlackService } from './slack/slack.service';
+import { SlackModule } from './slack/slack.module';
 
 @Module({
   imports: [
@@ -20,7 +22,9 @@ import { ConfigModule } from '@nestjs/config';
       synchronize: false,
     }),
     UserLockerModule,
-    UserCompartmentModule
+    UserCompartmentModule,
+    SlackModule
+
   ],
   controllers: [AppController],
   providers: [AppService],

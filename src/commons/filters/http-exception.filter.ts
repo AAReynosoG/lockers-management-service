@@ -6,10 +6,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { SlackService } from '../../slack/slack.service';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost) {
+  constructor(private readonly slackService: SlackService) {}
+
+  async catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -17,6 +20,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    await this.slackService.sendExceptionMessage({
+      exception,
+      status,
+    });
 
     if (
       exception instanceof HttpException &&
