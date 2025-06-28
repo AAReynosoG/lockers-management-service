@@ -5,8 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserLockerModule } from './user-lockers/user-locker.module';
 import { UserCompartmentModule } from './user-compartments/user-compartment.module';
 import { ConfigModule } from '@nestjs/config';
-import { SlackService } from './slack/slack.service';
-import { SlackModule } from './slack/slack.module';
+import { SlackModule } from './communication/slack/slack.module';
+import { ResendModule } from './communication/resend/resend.module';
 
 @Module({
   imports: [
@@ -23,8 +23,7 @@ import { SlackModule } from './slack/slack.module';
     }),
     UserLockerModule,
     UserCompartmentModule,
-    SlackModule
-
+    SlackModule,
   ],
   controllers: [AppController],
   providers: [AppService],

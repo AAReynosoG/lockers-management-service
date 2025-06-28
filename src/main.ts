@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './commons/filters/http-exception.filter';
-import { SlackService } from './slack/slack.service';
+import { SlackService } from './communication/slack/slack.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

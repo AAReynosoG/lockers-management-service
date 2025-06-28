@@ -26,13 +26,13 @@ export class UserCompartmentController {
 
     const data = await this.service.assignUserToLockerCompartment(lockerId, compartmentNumber, user_email, role)
 
-    if (!data) {
-      throw new NotFoundException({ success: false, message: 'Resource not found', errors: null });
+    if (!data.success) {
+      throw new NotFoundException({ success: false, message: data.message, errors: null });
     }
 
     return {
       success: true,
-      message: 'Operation completed successfully',
+      message: data.message,
       data: null
     }
 

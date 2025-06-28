@@ -22,7 +22,12 @@ export class UserLockerService {
   ) {
 
     const orgExists = await this.organizationRepository.findOne({where: {id: organizationId}});
-    if (!orgExists) return null
+    if (!orgExists) {
+      return {
+        success: false,
+        message: 'Organization not found'
+      }
+    }
 
     const offset = (page - 1) * limit;
 
@@ -59,6 +64,7 @@ export class UserLockerService {
     }));
 
     return {
+      success: true,
       items,
       total,
       page,

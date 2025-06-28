@@ -8,10 +8,12 @@ import { LockerUserRole } from '../entities/locker-user-role.entity';
 import { AccessPermission } from '../entities/access_permission.entity';
 import { AccessPermissionCompartment } from '../entities/access_permission_compartment.entity';
 import { LockerUserRoleEnum } from '../commons/enums/locker-user-role.enum';
+import { ResendService } from '../communication/resend/resend.service';
 
 @Injectable()
 export class UserCompartmentService {
   constructor(
+    private resendService: ResendService,
     @InjectRepository(Locker)
     private readonly lockerRepository: Repository<Locker>,
     @InjectRepository(Compartment)
@@ -34,7 +36,12 @@ export class UserCompartmentService {
   ) {
     const locker = await this.lockerRepository.findOne({ where: { id: lockerId } });
 
-    if (!locker) return null
+    if (!locker) {
+      return {
+        success: false,
+        message: `Locker doesn't exist`,
+      }
+    }
 
     const compartment = await this.compartmentRepository.findOne({
       where: {
@@ -43,11 +50,25 @@ export class UserCompartmentService {
       },
     });
 
-    if (!compartment) return null
+    if (!compartment) {
+      return {
+        success: false,
+        message: `Compartment doesn't exist`,
+      }
+    }
 
     const user = await this.userRepository.findOne({ where: { email: userEmail } });
 
-    if (!user) return null
+    if (!user) {
+      await this.resendService.sendEmail(userEmail, 'Lockity - Invitation', 'invitation-view', {
+        email: userEmail
+      });
+
+      return {
+        success: false,
+        message: `User doesn't exist. An invitation email has been sent to their email!`,
+      }
+    }
 
     let lockerUserRole = await this.lockerUserRoleRepository.findOne({
       where: { locker: { id: locker.id }, user: { id: user.id } },
@@ -95,6 +116,9 @@ export class UserCompartmentService {
       await this.accessPermissionCompartmentRepository.save(accessPermissionCompartment);
     }
 
-    return true
+    return {
+      success: true,
+      message: `Operation completed successfully`,
+    }
   }
 }

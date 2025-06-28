@@ -24,5 +24,4 @@ export class SlackService {
 
     await axios.post(this.webhookUrl, { text: slackMessage });
   }
-
 }

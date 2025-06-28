@@ -8,10 +8,12 @@ import { Compartment } from '../entities/compartment.entity';
 import { User } from '../entities/user.entity';
 import { LockerUserRole } from '../entities/locker-user-role.entity';
 import { AccessPermission } from '../entities/access_permission.entity';
+import { ResendModule } from '../communication/resend/resend.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Locker, Compartment, User, LockerUserRole, AccessPermission, AccessPermissionCompartment]),
+    ResendModule,
   ],
   controllers: [UserCompartmentController],
   providers: [UserCompartmentService],

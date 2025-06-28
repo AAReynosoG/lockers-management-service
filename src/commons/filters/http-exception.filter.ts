@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { SlackService } from '../../slack/slack.service';
+import { SlackService } from '../../communication/slack/slack.service';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -20,11 +20,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    await this.slackService.sendExceptionMessage({
-      exception,
-      status,
-    });
 
     if (
       exception instanceof HttpException &&
@@ -42,6 +37,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return response.status(status).json(exceptionResponse);
       }
     }
+
+    await this.slackService.sendExceptionMessage({
+      exception,
+      status,
+    });
 
     let message = 'Internal server error';
     if (status === HttpStatus.UNAUTHORIZED) {

@@ -30,7 +30,7 @@ export class UserLockerController {
 
     const data = await this.service.findUsersByOrganizationWithLockers(organizationId, +page, +limit, role);
 
-    if (!data) {
+    if (!data.success) {
       throw new NotFoundException({ success: false, message: 'Resource not found', errors: null });
     }
 
