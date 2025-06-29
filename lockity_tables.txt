@@ -6,7 +6,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) DEFAULT NULL,
     has_email_verified BOOL NOT NULL DEFAULT FALSE,
-    verification_link_sent_at TIMESTAMP NOT NULL,
+    verification_link_sent_at TIMESTAMP NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
