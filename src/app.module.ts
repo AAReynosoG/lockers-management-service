@@ -6,7 +6,6 @@ import { UserLockerModule } from './user-lockers/user-locker.module';
 import { UserCompartmentModule } from './user-compartments/user-compartment.module';
 import { ConfigModule } from '@nestjs/config';
 import { SlackModule } from './communication/slack/slack.module';
-import { ResendModule } from './communication/resend/resend.module';
 
 @Module({
   imports: [
