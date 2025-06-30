@@ -3,7 +3,6 @@ import {
   Get,
   Param,
   Query,
-  NotFoundException,
   HttpCode, UseGuards,
 } from '@nestjs/common';
 import { UserLockerService } from './user-locker.service';
@@ -30,10 +29,6 @@ export class UserLockerController {
     const { role } = roleDto;
 
     const data = await this.service.findUsersByOrganizationWithLockers(organizationId, +page, +limit, role);
-
-    if (!data.success) {
-      throw new NotFoundException({ success: false, message: 'Resource not found', errors: null });
-    }
 
     return {
       success: true,

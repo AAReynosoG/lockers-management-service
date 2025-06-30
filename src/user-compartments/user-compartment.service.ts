@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Locker } from '../entities/locker.entity';
@@ -37,10 +37,11 @@ export class UserCompartmentService {
     const locker = await this.lockerRepository.findOne({ where: { id: lockerId } });
 
     if (!locker) {
-      return {
+      throw new NotFoundException({
         success: false,
         message: `Locker doesn't exist`,
-      }
+        errors: null
+      })
     }
 
     const compartment = await this.compartmentRepository.findOne({
@@ -51,10 +52,11 @@ export class UserCompartmentService {
     });
 
     if (!compartment) {
-      return {
+      throw new NotFoundException({
         success: false,
         message: `Compartment doesn't exist`,
-      }
+        errors: null
+      })
     }
 
     const user = await this.userRepository.findOne({ where: { email: userEmail } });
@@ -64,10 +66,11 @@ export class UserCompartmentService {
         email: userEmail
       });
 
-      return {
+      throw new NotFoundException({
         success: false,
         message: `User doesn't exist. An invitation email has been sent to their email!`,
-      }
+        errors: null
+      })
     }
 
     let lockerUserRole = await this.lockerUserRoleRepository.findOne({
@@ -116,9 +119,6 @@ export class UserCompartmentService {
       await this.accessPermissionCompartmentRepository.save(accessPermissionCompartment);
     }
 
-    return {
-      success: true,
-      message: `Operation completed successfully`,
-    }
+    return null;
   }
 }

@@ -2,7 +2,6 @@ import {
   Controller,
   Put,
   Param,
-  NotFoundException,
   Body,
   HttpCode, UseGuards,
 } from '@nestjs/common';
@@ -28,14 +27,10 @@ export class UserCompartmentController {
 
     const data = await this.service.assignUserToLockerCompartment(lockerId, compartmentNumber, user_email, role)
 
-    if (!data.success) {
-      throw new NotFoundException({ success: false, message: data.message, errors: null });
-    }
-
     return {
       success: true,
-      message: data.message,
-      data: null
+      message: `Operation completed successfully`,
+      data: data
     }
 
   }

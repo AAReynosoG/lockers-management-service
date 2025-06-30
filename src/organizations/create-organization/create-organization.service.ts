@@ -1,10 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Organization } from '../entities/organization.entity';
-import { Area } from '../entities/area.entity';
+import { Organization } from '../../entities/organization.entity';
+import { Area } from '../../entities/area.entity';
 import { Repository } from 'typeorm';
-import { Locker } from '../entities/locker.entity';
-import { User } from '../entities/user.entity';
+import { Locker } from '../../entities/locker.entity';
+import { User } from '../../entities/user.entity';
 
 @Injectable()
 export class CreateOrganizationService {

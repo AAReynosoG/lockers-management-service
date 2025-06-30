@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
@@ -23,10 +23,11 @@ export class UserLockerService {
 
     const orgExists = await this.organizationRepository.findOne({where: {id: organizationId}});
     if (!orgExists) {
-      return {
+      throw new NotFoundException({
         success: false,
-        message: 'Organization not found'
-      }
+        message: 'Organization not found',
+        errors: null
+      })
     }
 
     const offset = (page - 1) * limit;
@@ -64,7 +65,6 @@ export class UserLockerService {
     }));
 
     return {
-      success: true,
       items,
       total,
       page,
