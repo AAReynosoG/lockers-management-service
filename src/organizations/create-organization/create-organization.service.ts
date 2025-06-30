@@ -66,12 +66,24 @@ export class CreateOrganizationService {
 
     await this.areasRepository.save(area);
 
-    const locker = await this.lockerRepository.findOneBy({serial_number: locker_serial_number});
+    const locker = await this.lockerRepository.findOne({
+      where: { serial_number: locker_serial_number },
+      relations: ['area']
+    });
 
     if(!locker) {
       throw new NotFoundException({
         success: false,
         message: `Locker ${locker_serial_number} not found`,
+        errors: null
+      })
+    }
+
+    if(locker.area != null) {
+      console.log('DEBUG')
+      throw new ConflictException({
+        success: false,
+        message: `The locker with serial number ${locker_serial_number} is already linked to an organization and area`,
         errors: null
       })
     }
