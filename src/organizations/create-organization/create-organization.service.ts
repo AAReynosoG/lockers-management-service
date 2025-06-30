@@ -84,7 +84,7 @@ export class CreateOrganizationService {
     locker.locker_number = count + 1;
     await this.lockerRepository.save(locker);
 
-    return true;
+    return null;
   }
 
 }

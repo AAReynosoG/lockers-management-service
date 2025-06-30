@@ -25,10 +25,10 @@ export class CreateOrganizationController {
 
     const data = await this.organizationService.createOrganizationAndArea(name, description, area, locker_serial_number, user);
 
-    if(data) return {
+    return {
       success: true,
       message: 'Organization created successfully.',
-      data: null
+      data: data
     }
   }
 }
