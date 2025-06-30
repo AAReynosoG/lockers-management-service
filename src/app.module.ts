@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SlackModule } from './communication/slack/slack.module';
 import { AuthModule } from './auth/auth.module';
 import { OrganizationModule } from './organizations/organization.module';
+import { LockerModule } from './lockers/locker.module';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { OrganizationModule } from './organizations/organization.module';
     UserCompartmentModule,
     SlackModule,
     AuthModule,
-    OrganizationModule
+    OrganizationModule,
+    LockerModule
   ],
   controllers: [AppController],
   providers: [AppService],

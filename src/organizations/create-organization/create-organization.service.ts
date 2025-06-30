@@ -80,7 +80,6 @@ export class CreateOrganizationService {
     }
 
     if(locker.area != null) {
-      console.log('DEBUG')
       throw new ConflictException({
         success: false,
         message: `The locker with serial number ${locker_serial_number} is already linked to an organization and area`,
