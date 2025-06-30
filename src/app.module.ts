@@ -6,6 +6,8 @@ import { UserLockerModule } from './user-lockers/user-locker.module';
 import { UserCompartmentModule } from './user-compartments/user-compartment.module';
 import { ConfigModule } from '@nestjs/config';
 import { SlackModule } from './communication/slack/slack.module';
+import { AuthModule } from './auth/auth.module';
+import { OrganizationModule } from './organizations/organization.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { SlackModule } from './communication/slack/slack.module';
     UserLockerModule,
     UserCompartmentModule,
     SlackModule,
+    AuthModule,
+    OrganizationModule
   ],
   controllers: [AppController],
   providers: [AppService],

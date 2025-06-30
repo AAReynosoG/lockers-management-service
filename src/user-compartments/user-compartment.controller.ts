@@ -4,16 +4,18 @@ import {
   Param,
   NotFoundException,
   Body,
-  HttpCode,
+  HttpCode, UseGuards,
 } from '@nestjs/common';
 import { UserCompartmentService } from './user-compartment.service';
 import { UserToCompartmentBodyDto, UserToCompartmentRouteDto } from './dto/user-to-compartment.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('api')
 export class UserCompartmentController {
 
   constructor(private readonly service: UserCompartmentService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(201)
   @Put('lockers/:lockerId/:compartmentNumber/users')
   async assignUserToCompartment(

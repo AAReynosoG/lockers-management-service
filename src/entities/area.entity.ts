@@ -10,6 +10,9 @@ export class Area {
   @Column()
   name: string;
 
+  @Column()
+  description: string;
+
   @ManyToOne(() => Organization, org => org.areas)
   @JoinColumn({ name: 'organization_id' })
   organization: Organization;

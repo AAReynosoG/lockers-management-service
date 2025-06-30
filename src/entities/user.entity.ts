@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { LockerUserRole } from './locker-user-role.entity';
 import { AccessPermission } from './access_permission.entity';
+import { Organization } from './organization.entity';
 
 @Entity('users')
 export class User {
@@ -24,4 +25,7 @@ export class User {
 
   @OneToMany(() => AccessPermission, accessPermission => accessPermission.user)
   accessPermissions: AccessPermission[];
+
+  @OneToMany(() => Organization, organization => organization.createdBy)
+  organizations: Organization[];
 }
