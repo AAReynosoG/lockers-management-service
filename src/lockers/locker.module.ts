@@ -4,12 +4,14 @@ import { GetLockerCompartmentsController } from './get-locker-compartments/get-l
 import { Locker } from '../entities/locker.entity';
 import { Compartment } from '../entities/compartment.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GetLockersController } from './get-lockers/get-lockers.controller';
+import { GetLockersService } from './get-lockers/get-lockers.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Locker, Compartment])
   ],
-  controllers: [GetLockerCompartmentsController],
-  providers: [GetLockerCompartmentsService]
+  controllers: [GetLockerCompartmentsController, GetLockersController],
+  providers: [GetLockerCompartmentsService, GetLockersService],
 })
 export class LockerModule {}

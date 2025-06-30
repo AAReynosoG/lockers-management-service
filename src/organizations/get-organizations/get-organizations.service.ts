@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Organization } from '../../entities/organization.entity';
 import { Repository } from 'typeorm';
-import { Area } from '../../entities/area.entity';
 import { User } from '../../entities/user.entity';
 
 @Injectable()
@@ -11,8 +10,6 @@ export class GetOrganizationsService {
   constructor(
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
-    @InjectRepository(Area)
-    private readonly areasRepository: Repository<Area>,
   ) {}
 
   async getOrganizations(
