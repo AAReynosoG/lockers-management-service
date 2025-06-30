@@ -5,7 +5,7 @@ import {
   HttpCode, UseGuards,
 } from '@nestjs/common';
 import { CreateOrganizationService } from './create-organization.service';
-import { CreateOrganizationAreaLockerDto } from '../dto/create-organization.dto';
+import { CreateOrganizationAreaLockerDto } from '../dtos/create-organization.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '../../entities/user.entity';
 import { CurrentUser } from '../../commons/decorators/current-user.decorator';

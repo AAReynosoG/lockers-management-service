@@ -6,9 +6,9 @@ import {
   HttpCode, UseGuards,
 } from '@nestjs/common';
 import { UserLockerService } from './user-locker.service';
-import { PaginationDto } from '../commons/dto/pagination.dto';
+import { PaginationDto } from '../commons/dtos/pagination.dto';
 import { OrganizationIdParamDto } from './dto/organization-id-param.dto';
-import { OptionalRoleDto} from '../commons/dto/role-filter.dto';
+import { OptionalRoleDto} from '../commons/dtos/role-filter.dto';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('api')

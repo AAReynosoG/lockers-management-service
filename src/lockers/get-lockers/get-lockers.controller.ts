@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { GetLockersService } from './get-lockers.service';
 import { CurrentUser } from '../../commons/decorators/current-user.decorator';
 import { User } from '../../entities/user.entity';
-import { PaginationDto } from '../../commons/dto/pagination.dto';
+import { PaginationDto } from '../../commons/dtos/pagination.dto';
 
 @Controller('api/lockers')
 export class GetLockersController {

@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { GetOrganizationsService } from './get-organizations.service';
 import { CurrentUser } from '../../commons/decorators/current-user.decorator';
 import { User } from '../../entities/user.entity';
-import { PaginationDto } from '../../commons/dto/pagination.dto';
+import { PaginationDto } from '../../commons/dtos/pagination.dto';
 
 @Controller('api/organizations')
 export class GetOrganizationsController {

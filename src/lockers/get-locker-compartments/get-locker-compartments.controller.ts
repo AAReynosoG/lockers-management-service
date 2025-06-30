@@ -2,7 +2,7 @@ import { Controller, Get, HttpCode, Param, ParseIntPipe, Query, UseGuards } from
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../../commons/decorators/current-user.decorator';
 import { User } from '../../entities/user.entity';
-import { PaginationDto } from '../../commons/dto/pagination.dto';
+import { PaginationDto } from '../../commons/dtos/pagination.dto';
 import { GetLockerCompartmentsService } from './get-locker-compartments.service';
 
 @Controller('api')
