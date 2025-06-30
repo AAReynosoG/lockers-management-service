@@ -1,40 +1,8 @@
 ### Dependencias
-`@nestjs/typeorm`
- ```
- npm install @nestjs/typeorm
- ```
 
-`mysql12`
- ```
- npm install mysql12
- ```
+---
+Para instalar las dependencias necesarias, despues de clonar o hacer pull es necesario ejecutar:
 
-`typeorm`
- ```
- npm install typeorm
- ```
-
-`class-validator`
- ```
- $ npm i --save class-validator
- ```
-
-`class-transformer`
- ```
- $ npm i --save class-transformer
- ```
-
-`resend`
- ```
- $ npm i resend
- ```
-
-`handlebars`
- ```
- $ npm i handlebars
- ```
-
-`axios`
- ```
- $ npm i axios
- ```
+``
+npm install
+``
