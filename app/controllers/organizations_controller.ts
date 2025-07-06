@@ -1,0 +1,115 @@
+import { HttpContext } from '@adonisjs/core/http'
+import { createOrganization } from '#validators/organization'
+import Organization from '#models/organization'
+import db from '@adonisjs/lucid/services/db'
+import Area from '#models/area'
+import Locker from '#models/locker'
+import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
+
+export default class OrganizationsController {
+  async createOrganizationAndArea({request, response, passportUser} : HttpContext) {
+    const payload = await request.validateUsing(createOrganization)
+
+    const existingOrg  = await Organization.findBy('name', payload.name)
+
+    if(existingOrg) {
+      return sendErrorResponse(response, 409, `Organization ${existingOrg.name} already exists`)
+    }
+
+    const trx = await db.transaction()
+
+    try {
+      const org = new Organization()
+      org.name = payload.name
+      org.description = payload.description
+      org.createdById = passportUser.id
+      org.useTransaction(trx)
+      await org.save()
+
+      const existingArea = await Area
+        .query()
+        .where('name', org.name)
+        .where('organization_id', org.id)
+        .first()
+
+      if(existingArea) {
+        await trx.rollback()
+        return sendErrorResponse(response, 409, `Area ${org.name} already exists`)
+      }
+
+      const area = new Area()
+      area.name = payload.area.name
+      area.description = payload.area.description
+      area.organizationId = org.id
+      area.useTransaction(trx)
+      await area.save()
+
+      const locker = await Locker.findBy('serial_number', payload.locker_serial_number)
+
+      if(!locker) {
+        await trx.rollback()
+        return sendErrorResponse(response, 404, `Locker ${payload.locker_serial_number} not found`)
+      }
+
+      if(locker.areaId != null) {
+        await trx.rollback()
+        return sendErrorResponse(response, 409, `The locker with serial number ${locker.serialNumber} is already linked to an organization and area`)
+      }
+
+      const count = Number(
+        (await Locker.query().where('area_id', area.id).count('* as total'))[0].$extras.total
+      )
+
+      locker.areaId = area.id
+      locker.lockerNumber = count + 1
+      locker.useTransaction(trx)
+      await locker.save()
+
+      await trx.commit()
+
+      return sendSuccessResponse(response, 201, 'Organization created successfully.')
+    } catch(error) {
+      await trx.rollback()
+      throw error
+    }
+  }
+
+  async getOrganizations({response, passportUser, request}: HttpContext) {
+    const page = Number(request.input('page', 1))
+    const limit = Number(request.input('limit', 10))
+
+    const query = await Organization.query()
+      .where('created_by', passportUser.id)
+      .preload('areas')
+      .orderBy('id', 'asc')
+      .paginate(page, limit)
+
+    const queryResults = query.toJSON()
+
+    const items = queryResults.data.map((org) => ({
+      id: org.id,
+      created_by: org.createdById,
+      name: org.name,
+      description: org.description,
+      areas: org.areas.map((area: Area) => ({
+        id: area.id,
+        name: area.name,
+        description: area.description,
+      })),
+    }))
+
+    return sendSuccessResponse(
+      response,
+      200,
+      'Organizations retrieved successfully',
+      {
+        items: items,
+        total: query.total,
+        page: page,
+        limit: limit,
+        has_next_page: query.currentPage < query.lastPage,
+        has_previous_page: query.currentPage > 1,
+      }
+      )
+  }
+}

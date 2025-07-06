@@ -1,0 +1,235 @@
+-- Usuarios y OAuth -----------------------------------------------
+CREATE TABLE users (
+    id BIGINT(20) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    second_last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) DEFAULT NULL,
+    has_email_verified BOOL NOT NULL DEFAULT FALSE,
+    verification_link_sent_at TIMESTAMP NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE `oauth_clients` (
+  `id` CHAR(36) NOT NULL PRIMARY KEY,
+  `user_id` BIGINT(20) UNSIGNED NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `secret` VARCHAR(100) NULL,
+  `provider` VARCHAR(255) NULL,
+  `redirect` TEXT NOT NULL,
+  `personal_access_client` TINYINT(1) NOT NULL,
+  `password_client` TINYINT(1) NOT NULL,
+  `revoked` TINYINT(1) NOT NULL,
+  `created_at` TIMESTAMP NULL,
+  `updated_at` TIMESTAMP NULL,
+  INDEX (`user_id`),
+  CONSTRAINT `oauth_clients_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+
+
+CREATE TABLE `oauth_personal_access_clients` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `client_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP NULL,
+  `updated_at` TIMESTAMP NULL,
+  CONSTRAINT `oauth_personal_access_clients_client_id_foreign` FOREIGN KEY (`client_id`) REFERENCES `oauth_clients`(`id`) ON DELETE CASCADE
+);
+
+
+CREATE TABLE `oauth_access_tokens` (
+  `id` VARCHAR(100) NOT NULL PRIMARY KEY,
+  `user_id` BIGINT(20) UNSIGNED NULL,
+  `client_id` CHAR(36) NOT NULL,
+  `name` VARCHAR(255) NULL,
+  `scopes` TEXT NULL,
+  `revoked` TINYINT(1) NOT NULL,
+  `created_at` TIMESTAMP NULL,
+  `updated_at` TIMESTAMP NULL,
+  `expires_at` DATETIME NULL,
+  INDEX (`user_id`),
+  INDEX (`client_id`),
+  CONSTRAINT `oauth_access_tokens_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `oauth_access_tokens_client_id_foreign` FOREIGN KEY (`client_id`) REFERENCES `oauth_clients`(`id`) ON DELETE CASCADE
+);
+
+
+CREATE TABLE `oauth_refresh_tokens` (
+  `id` VARCHAR(100) NOT NULL PRIMARY KEY,
+  `access_token_id` VARCHAR(100) NOT NULL,
+  `revoked` TINYINT(1) NOT NULL,
+  `expires_at` DATETIME NULL,
+  INDEX (`access_token_id`),
+  CONSTRAINT `oauth_refresh_tokens_access_token_id_foreign` FOREIGN KEY (`access_token_id`) REFERENCES `oauth_access_tokens`(`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `oauth_auth_codes` (
+  `id` VARCHAR(100) NOT NULL PRIMARY KEY,
+  `user_id` BIGINT(20) UNSIGNED NOT NULL,
+  `client_id` CHAR(36) NOT NULL,
+  `scopes` TEXT NULL,
+  `revoked` TINYINT(1) NOT NULL,
+  `expires_at` DATETIME NULL,
+  INDEX (`user_id`),
+  INDEX (`client_id`),
+  CONSTRAINT `oauth_auth_codes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `oauth_auth_codes_client_id_foreign` FOREIGN KEY (`client_id`) REFERENCES `oauth_clients`(`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `two_factor_codes` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT(20) UNSIGNED NOT NULL,
+  `code` VARCHAR(255) NOT NULL,
+  `used` TINYINT(1) NOT NULL DEFAULT FALSE,
+  `expires_at` TIMESTAMP NOT NULL,
+  `created_at` TIMESTAMP NULL,
+  `updated_at` TIMESTAMP NULL,
+  CONSTRAINT `two_factor_codes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE device_tokens (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT(20) UNSIGNED NULL,
+    device_token VARCHAR(255) NOT NULL UNIQUE, -- Token que provee FCM para ese dispositivo/cliente.
+    device_type ENUM('mobile', 'web', 'desktop') NOT NULL,
+    platform ENUM('android', 'ios', 'windows', 'linux', 'macos') NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+-- Jerarquía organizacional ----------------------------------------------------
+CREATE TABLE organizations (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    created_by BIGINT(20) UNSIGNED NOT NULL,
+    name VARCHAR(80) NOT NULL UNIQUE,
+    description VARCHAR(150) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE areas (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    organization_id INT UNSIGNED NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE RESTRICT,
+    UNIQUE (organization_id, name)
+);
+
+
+-- Lockers y su configuración --------------------------------------------------
+CREATE TABLE lockers (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    area_id INT UNSIGNED       NULL DEFAULT NULL,
+    serial_number VARCHAR(100) NOT NULL UNIQUE,
+    locker_number TINYINT UNSIGNED NULL DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE SET NULL,
+    UNIQUE (area_id, locker_number)
+);
+
+-- Topics MQTT que el locker deberá suscribir para "open" y/o "sensor"
+CREATE TABLE locker_topics (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    locker_id INT UNSIGNED NOT NULL,
+    topic VARCHAR(150) NOT NULL,
+    FOREIGN KEY (locker_id) REFERENCES lockers(id)
+);
+
+-- Actuadores / sensores adicionales (comando o lectura)
+CREATE TABLE locker_actuators (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    locker_id INT UNSIGNED NOT NULL,
+    type ENUM('command','sensor') NOT NULL,
+    value VARCHAR(100) NOT NULL,
+    FOREIGN KEY (locker_id) REFERENCES lockers(id)
+);
+
+-- Compartimentos (cajones) dentro de cada locker ------------------------------
+CREATE TABLE compartments (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    locker_id INT UNSIGNED NOT NULL,
+    compartment_number TINYINT UNSIGNED NOT NULL,
+    status ENUM('open','closed','error','maintenance') NOT NULL DEFAULT 'closed',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (locker_id) REFERENCES lockers(id),
+    UNIQUE (locker_id, compartment_number)
+);
+
+-- Roles lógicos por locker ----------------------------------------------------
+CREATE TABLE locker_user_roles (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    locker_id INT UNSIGNED NOT NULL,
+    user_id BIGINT(20) UNSIGNED NOT NULL,
+    role ENUM('super_admin','admin','user') NOT NULL,
+    assigned_by BIGINT(20) UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (locker_id) REFERENCES lockers(id),
+    FOREIGN KEY (user_id)   REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE (locker_id, user_id)
+);
+
+-- Permisos principales de acceso (hashes biometricos / PINs) ------------------
+CREATE TABLE access_permissions (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    locker_id INT UNSIGNED NOT NULL,
+    user_id BIGINT(20) UNSIGNED NOT NULL,
+    assigned_by BIGINT(20) UNSIGNED NULL,
+    has_fingerprint BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (locker_id)   REFERENCES lockers(id),
+    FOREIGN KEY (user_id)     REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE (locker_id, user_id)
+);
+
+-- Relación de permisos a compartimentos específicos --------------------------
+CREATE TABLE access_permission_compartments (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    access_permission_id INT UNSIGNED NOT NULL,
+    compartment_id       INT UNSIGNED NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (access_permission_id) REFERENCES access_permissions(id) ON DELETE RESTRICT,
+    FOREIGN KEY (compartment_id)         REFERENCES compartments(id),
+    UNIQUE (access_permission_id, compartment_id)
+);
+
+-- Códigos generados por compartimento (flujo “Generar código”) ---------------
+CREATE TABLE generated_codes (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    access_permission_id INT UNSIGNED NOT NULL,
+    compartment_id       INT UNSIGNED NOT NULL,
+    code CHAR(60) NOT NULL, -- BCrypt
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (access_permission_id) REFERENCES access_permissions(id) ON DELETE RESTRICT,
+    FOREIGN KEY (compartment_id)       REFERENCES compartments(id)
+);
+
+
+-- Horarios de apertura/cierre ------------------------------------------------
+CREATE TABLE schedules (
+  id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  locker_id INT UNSIGNED NOT NULL,
+  day_of_week   ENUM('mon','tue','wed','thu','fri','sat','sun') DEFAULT NULL,
+  start_time    TIME DEFAULT NULL,
+  end_time      TIME DEFAULT NULL,
+  repeat_schedule BOOLEAN DEFAULT TRUE,
+  schedule_date DATE    DEFAULT NULL,
+  created_by  BIGINT(20) UNSIGNED NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (locker_id)   REFERENCES lockers(id),
+  FOREIGN KEY (created_by)  REFERENCES users(id) ON DELETE SET NULL
+);

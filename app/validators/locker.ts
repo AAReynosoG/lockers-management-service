@@ -1,0 +1,28 @@
+import vine from '@vinejs/vine'
+
+export const lockerParamsValidator = vine.compile(
+  vine.object({
+    lockerId: vine.number().positive(),
+  })
+)
+
+export const assignUserToCompartmentParamsValidator = vine.compile(
+  vine.object({
+    lockerId: vine.number().positive(),
+    compartmentNumber: vine.number().positive(),
+  })
+)
+
+export const getUsersWithLockersParamsValidator = vine.compile(
+  vine.object({
+    organizationId: vine.number().positive(),
+  })
+)
+
+export const getLockerConfigParamsValidator = vine.compile(
+  vine.object({
+    lockerId: vine.number().positive(),
+  })
+)
+
+

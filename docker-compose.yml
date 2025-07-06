@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  adonis:
+    container_name: lockers-management-service-container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    networks:
+      - lockity-microservices-net
+
+networks:
+  lockity-microservices-net:
+    external: true
