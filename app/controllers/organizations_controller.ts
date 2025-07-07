@@ -11,18 +11,22 @@ import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Compartment from '#models/compartment'
 
 export default class OrganizationsController {
-  async createOrganizationAndArea({request, response, passportUser} : HttpContext) {
+  async createOrganizationAndArea({ request, response, passportUser }: HttpContext) {
     const payload = await request.validateUsing(createOrganization)
-
-    const existingOrg  = await Organization.findBy('name', payload.name)
-
-    if(existingOrg) {
-      return sendErrorResponse(response, 409, `Organization ${existingOrg.name} already exists`)
-    }
 
     const trx = await db.transaction()
 
     try {
+      const existingOrg = await Organization
+        .query({ client: trx })
+        .where('name', payload.name)
+        .first()
+
+      if (existingOrg) {
+        await trx.rollback()
+        return sendErrorResponse(response, 409, `Organization ${existingOrg.name} already exists`)
+      }
+
       const org = new Organization()
       org.name = payload.name
       org.description = payload.description
@@ -31,12 +35,12 @@ export default class OrganizationsController {
       await org.save()
 
       const existingArea = await Area
-        .query()
+        .query({ client: trx })
         .where('name', org.name)
         .where('organization_id', org.id)
         .first()
 
-      if(existingArea) {
+      if (existingArea) {
         await trx.rollback()
         return sendErrorResponse(response, 409, `Area ${org.name} already exists`)
       }
@@ -48,20 +52,26 @@ export default class OrganizationsController {
       area.useTransaction(trx)
       await area.save()
 
-      const locker = await Locker.findBy('serial_number', payload.locker_serial_number)
+      const locker = await Locker
+        .query({ client: trx })
+        .where('serial_number', payload.locker_serial_number)
+        .forUpdate()
+        .first()
 
-      if(!locker) {
+      if (!locker) {
         await trx.rollback()
         return sendErrorResponse(response, 404, `Locker ${payload.locker_serial_number} not found`)
       }
 
-      if(locker.areaId != null) {
+      if (locker.areaId != null) {
         await trx.rollback()
         return sendErrorResponse(response, 409, `The locker with serial number ${locker.serialNumber} is already linked to an organization and area`)
       }
 
       const count = Number(
-        (await Locker.query().where('area_id', area.id).count('* as total'))[0].$extras.total
+        (await Locker.query({ client: trx })
+          .where('area_id', area.id)
+          .count('* as total'))[0].$extras.total
       )
 
       locker.areaId = area.id
@@ -73,31 +83,33 @@ export default class OrganizationsController {
         role: 'super_admin',
         userId: passportUser.id,
         lockerId: locker.id
-      })
+      }, {}, { client: trx })
 
-      let accessPermission = await AccessPermission.firstOrCreate({
+      const accessPermission = await AccessPermission.firstOrCreate({
         lockerId: locker.id,
         userId: passportUser.id,
-        createdBy: passportUser.id
-      })
+      }, {}, { client: trx })
 
-      const compartments = await Compartment.query().where('locker_id', locker.id)
+      const compartments = await Compartment
+        .query({ client: trx })
+        .where('locker_id', locker.id)
 
       for (const compartment of compartments) {
         await AccessPermissionCompartment.firstOrCreate({
           accessPermissionId: accessPermission.id,
           compartmentId: compartment.id,
-        })
+        }, {}, { client: trx })
       }
 
       await trx.commit()
 
       return sendSuccessResponse(response, 201, 'Organization created successfully.')
-    } catch(error) {
+    } catch (error) {
       await trx.rollback()
       throw error
     }
   }
+
 
   async getOrganizations({response, passportUser, request}: HttpContext) {
     const page = Number(request.input('page', 1))

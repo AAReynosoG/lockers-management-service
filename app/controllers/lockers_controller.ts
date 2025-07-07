@@ -206,7 +206,6 @@ export default class LockersController {
     let accessPermission = await AccessPermission.firstOrCreate({
       lockerId: locker.id,
       userId: user.id,
-      createdBy: passportUser.id
     })
 
     await AccessPermissionCompartment.firstOrCreate({

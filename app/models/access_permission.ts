@@ -18,13 +18,6 @@ export default class AccessPermission extends BaseModel {
   @column({columnName: 'locker_id'})
   declare lockerId: number
 
-  @column({columnName: 'created_by'})
-  declare createdBy: number
-
-  @belongsTo(() => User, {
-    foreignKey: 'createdBy',
-  })
-  declare creator: BelongsTo<typeof User>
 
   @belongsTo(() => Locker, {
     foreignKey: 'lockerId',
