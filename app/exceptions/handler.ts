@@ -2,6 +2,7 @@ import app from '@adonisjs/core/services/app'
 import { HttpContext, ExceptionHandler } from '@adonisjs/core/http'
 import { errors } from '@vinejs/vine'
 import { sendErrorResponse } from '../helpers/response.js'
+import { SlackService } from '#services/slack_service'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**
@@ -46,6 +47,12 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * @note You should not attempt to send a response from this method.
    */
   async report(error: unknown, ctx: HttpContext) {
+    const status = typeof error === 'object' && error && 'status' in error
+      ? (error as any).status
+      : 500
+
+    await new SlackService().sendExceptionMessage(error, status)
+
     return super.report(error, ctx)
   }
 }

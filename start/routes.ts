@@ -29,7 +29,3 @@ router
 
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
-
-router.get('/', async () => {
-  return 'Test'
-}).use(middleware.passportAuth())
