@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  adonis-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adonis1-service
+    ports:
+      - "8002:8003"
+    env_file:
+      - .env
