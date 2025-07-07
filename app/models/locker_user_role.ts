@@ -23,7 +23,7 @@ export default class LockerUserRole extends BaseModel {
   declare locker: BelongsTo<typeof Locker>
 
   @belongsTo(() => User, {
-    foreignKey: 'user_id',
+    foreignKey: 'userId',
   })
   declare user: BelongsTo<typeof User>
 

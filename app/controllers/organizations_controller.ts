@@ -5,6 +5,10 @@ import db from '@adonisjs/lucid/services/db'
 import Area from '#models/area'
 import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
+import AccessPermission from '#models/access_permission'
+import LockerUserRole from '#models/locker_user_role'
+import AccessPermissionCompartment from '#models/access_permission_compartment'
+import Compartment from '#models/compartment'
 
 export default class OrganizationsController {
   async createOrganizationAndArea({request, response, passportUser} : HttpContext) {
@@ -64,6 +68,27 @@ export default class OrganizationsController {
       locker.lockerNumber = count + 1
       locker.useTransaction(trx)
       await locker.save()
+
+      await LockerUserRole.firstOrCreate({
+        role: 'super_admin',
+        userId: passportUser.id,
+        lockerId: locker.id
+      })
+
+      let accessPermission = await AccessPermission.firstOrCreate({
+        lockerId: locker.id,
+        userId: passportUser.id,
+        createdBy: passportUser.id
+      })
+
+      const compartments = await Compartment.query().where('locker_id', locker.id)
+
+      for (const compartment of compartments) {
+        await AccessPermissionCompartment.firstOrCreate({
+          accessPermissionId: accessPermission.id,
+          compartmentId: compartment.id,
+        })
+      }
 
       await trx.commit()
 
