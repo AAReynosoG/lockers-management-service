@@ -12,7 +12,9 @@ export default class LockersConfigsController {
       .where('id', lockerId)
       .preload('lockerTopics')
       .preload('accessPermissions', (apQuery) => {
-        apQuery.preload('accessPermissionCompartments', (apcQuery) => {
+        apQuery
+          .preload('user')
+          .preload('accessPermissionCompartments', (apcQuery) => {
           apcQuery.preload('compartment')
         })
       })
@@ -36,6 +38,7 @@ export default class LockersConfigsController {
 
       return {
         id_usuario: ap.userId.toString(),
+        nombre_usuario: `${ap.user.name} ${ap.user.lastName} ${ap.user.secondLastName}`,
         cajones_usuario: [...new Set(compartments)]
       }
     })
