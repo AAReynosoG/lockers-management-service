@@ -37,9 +37,3 @@ export const createLockerValidator = vine.compile(
     number_of_compartments: vine.number().positive().max(3).min(1),
   })
 )
-
-export const getAuthUserLockers = vine.compile(
-  vine.object({
-    showSchedules: vine.boolean().optional(),
-  })
-)
