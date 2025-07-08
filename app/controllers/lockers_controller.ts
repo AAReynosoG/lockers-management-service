@@ -131,6 +131,7 @@ export default class LockersController {
 
     const items = queryResults.data.map((locker) => ({
       id: locker.id,
+      locker_serial_number: locker.serialNumber,
       locker_number: locker.lockerNumber,
       area_id: locker.areaId,
       area_name: locker.area?.name,

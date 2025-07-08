@@ -25,4 +25,10 @@ export const getLockerConfigParamsValidator = vine.compile(
   })
 )
 
+export const createLockerTopicsValidator = vine.compile(
+  vine.object({
+    topic: vine.string().trim(),
+  })
+)
+
 

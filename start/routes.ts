@@ -26,6 +26,7 @@ router
   router
     .group(() => {
       router.get('/:lockerId', [LockerConfigController, 'getLockerConfig'])
+      router.post('/:lockerId/create-topic', [LockerConfigController, 'createLockerTopics'])
 
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())

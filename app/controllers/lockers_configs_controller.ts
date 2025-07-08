@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { getLockerConfigParamsValidator } from '#validators/locker'
+import { createLockerTopicsValidator, getLockerConfigParamsValidator } from '#validators/locker'
 import Locker from '#models/locker'
-import { sendErrorResponse } from '../helpers/response.js'
+import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
+import LockerTopic from '#models/locker_topic'
 
 export default class LockersConfigsController {
   async getLockerConfig({ request, response }: HttpContext) {
@@ -50,6 +51,18 @@ export default class LockersConfigsController {
         users: users
       }
     })
+  }
+
+  async createLockerTopics({ request, response}: HttpContext) {
+    const { lockerId } = await getLockerConfigParamsValidator.validate(request.params())
+    const payload = await request.validateUsing(createLockerTopicsValidator)
+
+    await LockerTopic.create({
+      lockerId: lockerId,
+      topic: payload.topic
+    })
+
+    return sendSuccessResponse(response, 201, 'Topic created successfully.')
   }
 
 }
