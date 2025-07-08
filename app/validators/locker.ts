@@ -31,6 +31,13 @@ export const createLockerTopicsValidator = vine.compile(
   })
 )
 
+export const createLockerValidator = vine.compile(
+  vine.object({
+    serial_number: vine.string().trim().maxLength(100),
+    number_of_compartments: vine.number().positive().max(3).min(1),
+  })
+)
+
 export const getAuthUserLockers = vine.compile(
   vine.object({
     showSchedules: vine.boolean().optional(),

@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { createLockerTopicsValidator, getLockerConfigParamsValidator } from '#validators/locker'
+import { createLockerTopicsValidator, createLockerValidator, getLockerConfigParamsValidator } from '#validators/locker'
 import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import LockerTopic from '#models/locker_topic'
+import Compartment from '#models/compartment'
 
 export default class LockersConfigsController {
   async getLockerConfig({ request, response }: HttpContext) {
@@ -63,6 +64,29 @@ export default class LockersConfigsController {
     })
 
     return sendSuccessResponse(response, 201, 'Topic created successfully.')
+  }
+
+  async createLocker({request, response} : HttpContext) {
+    const payload = await request.validateUsing(createLockerValidator)
+
+    let locker = await Locker.findBy('serial_number', payload.serial_number)
+
+    if(locker) return sendErrorResponse(response, 409, 'Locker already exists')
+
+    locker = await Locker.create({
+      serialNumber: payload.serial_number
+    })
+
+    await Promise.all(
+      Array.from({ length: payload.number_of_compartments }, (_, index) =>
+        Compartment.create({
+          lockerId: locker.id,
+          compartmentNumber: index + 1,
+        })
+      )
+    )
+
+    return sendSuccessResponse(response, 201, 'Locker created successfully.')
   }
 
 }
