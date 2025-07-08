@@ -14,7 +14,7 @@ router
 
     router.group(() => {
       router.get('/:lockerId/compartments', [LockerController, 'getLockerCompartments'])
-      router.get('', [LockerController, 'getLockers'])
+      router.get('/:showSchedules?', [LockerController, 'getLockers'])
       router.post(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
     }).prefix('/lockers')

@@ -10,10 +10,11 @@ import AccessPermission from '#models/access_permission'
 import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Organization from '#models/organization'
 import {
-  assignUserToCompartmentParamsValidator,
+  assignUserToCompartmentParamsValidator, getAuthUserLockers,
   getUsersWithLockersParamsValidator,
   lockerParamsValidator,
 } from '#validators/locker'
+import Schedule from '#models/schedule'
 
 export default class LockersController {
   async getLockerCompartments({request, passportUser, response}: HttpContext) {
@@ -109,6 +110,7 @@ export default class LockersController {
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
     const organizationId = Number(request.input('organizationId'))
+    const params = await getAuthUserLockers.validate(request.params())
 
     const lockersQuery = await Locker.query()
       .whereHas('lockerUserRoles', (lurQuery) => {
@@ -124,6 +126,9 @@ export default class LockersController {
       .preload('area', (areaQuery) => {
         areaQuery.preload('organization')
       })
+      .if(params.showSchedules, (query) => {
+        query.preload('schedules')
+      })
       .orderBy('id', 'asc')
       .paginate(page, limit)
 
@@ -137,6 +142,13 @@ export default class LockersController {
       area_name: locker.area?.name,
       organization_id: locker.area?.organization?.id,
       organization_name: locker.area?.organization?.name,
+      schedules: params.showSchedules ? locker.schedules.map((schedule: Schedule) => ({
+        day_of_week: schedule.dayOfWeek,
+        start_time: schedule.startTime,
+        end_time: schedule.endTime,
+        repeat_schedule: schedule.repeatSchedule,
+        schedule_date: schedule.scheduleDate
+      })) : [],
     }))
 
     return sendSuccessResponse(
