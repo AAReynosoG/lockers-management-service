@@ -51,7 +51,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       ? (error as any).status
       : 500
 
-    await new SlackService().sendExceptionMessage(error, status)
+    if (status >= 500) await new SlackService().sendExceptionMessage(error, status)
 
     return super.report(error, ctx)
   }
