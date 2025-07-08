@@ -6,6 +6,7 @@ import LockerUserRole from '#models/locker_user_role'
 import AccessPermission from '#models/access_permission'
 import Area from '#models/area'
 import LockerTopic from '#models/locker_topic'
+import Schedule from '#models/schedule'
 
 export default class Locker extends BaseModel {
   @column({ isPrimary: true })
@@ -36,6 +37,9 @@ export default class Locker extends BaseModel {
 
   @hasMany(() => LockerTopic)
   declare lockerTopics: HasMany<typeof LockerTopic>
+
+  @hasMany(() => Schedule)
+  declare schedules: HasMany<typeof Schedule>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
