@@ -11,13 +11,12 @@ import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Organization from '#models/organization'
 import {
   assignUserToCompartmentParamsValidator,
-  getUsersWithLockersParamsValidator, lockerIdParamsValidator,
+  getUsersWithLockersParamsValidator,
   lockerParamsValidator, moveLockerToAreaValidator,
 } from '#validators/locker'
 import Schedule from '#models/schedule'
 import Area from '#models/area'
 import ScheduleService from '#services/schedule_service'
-import { createScheduleValidator } from '#validators/schedule'
 
 export default class LockersController {
   async getLockerCompartments({request, passportUser, response}: HttpContext) {
@@ -360,7 +359,7 @@ export default class LockersController {
         try {
           await ScheduleService.validateAndCreate(schedule, locker.id, passportUser.id)
         } catch (error) {
-          return sendErrorResponse(response, 409, error.message)
+          return sendErrorResponse(response, error.statusCode, error.message)
         }
       }
     }

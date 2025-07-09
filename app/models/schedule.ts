@@ -12,7 +12,7 @@ export default class Schedule extends BaseModel {
   declare lockerId: number
 
   @column({columnName: 'day_of_week'})
-  declare dayOfWeek: string
+  declare dayOfWeek: string | null
 
   @column({columnName: 'start_time'})
   declare startTime: string
@@ -24,7 +24,7 @@ export default class Schedule extends BaseModel {
   declare repeatSchedule: boolean
 
   @column({columnName: 'schedule_date'})
-  declare scheduleDate: string
+  declare scheduleDate: string | null
 
   @column({columnName: 'created_by'})
   declare createdBy: number

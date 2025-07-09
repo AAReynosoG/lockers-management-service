@@ -4,6 +4,8 @@ import { middleware } from '#start/kernel'
 const OrganizationController = () => import('#controllers/organizations_controller')
 const LockerController = () => import('#controllers/lockers_controller')
 const LockerConfigController = () => import('#controllers/lockers_configs_controller')
+const ScheduleController = () => import('#controllers/schedules_controller')
+
 router
   .group(() => {
 
@@ -18,6 +20,8 @@ router
       router.post('', [LockerController, 'moveLockerToArea'])
       router.post(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
+      router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
+      router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
     }).prefix('/lockers')
 
   })
