@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import Locker from '#models/locker'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import User from '#models/user'
 
 export default class Schedule extends BaseModel {
   @column({ isPrimary: true })
@@ -11,7 +12,7 @@ export default class Schedule extends BaseModel {
   declare lockerId: number
 
   @column({columnName: 'day_of_week'})
-  declare dayOfWeek: number
+  declare dayOfWeek: string
 
   @column({columnName: 'start_time'})
   declare startTime: string
@@ -22,8 +23,16 @@ export default class Schedule extends BaseModel {
   @column({columnName: 'repeat_schedule'})
   declare repeatSchedule: boolean
 
-  @column.date({columnName: 'schedule_date', serializeAs: 'scheduleDate'})
-  declare scheduleDate: DateTime
+  @column({columnName: 'schedule_date'})
+  declare scheduleDate: string
+
+  @column({columnName: 'created_by'})
+  declare createdBy: number
+
+  @belongsTo(() => User, {
+    foreignKey: 'createdBy',
+  })
+  declare creator: BelongsTo<typeof User>
 
   @belongsTo(() => Locker, {
     foreignKey: 'lockerId',
