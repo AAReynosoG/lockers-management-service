@@ -22,6 +22,7 @@ router
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
+      router.get(':lockerId/schedules', [ScheduleController, 'getLockerSchedules'])
     }).prefix('/lockers')
 
   })
