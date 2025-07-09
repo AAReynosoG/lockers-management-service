@@ -344,6 +344,28 @@ export default class LockersController {
       }
     }
 
+    await LockerUserRole.firstOrCreate({
+      role: 'super_admin',
+      userId: passportUser.id,
+      lockerId: locker.id
+    })
+
+    const accessPermission = await AccessPermission.firstOrCreate({
+      lockerId: locker.id,
+      userId: passportUser.id,
+    })
+
+    const compartments = await Compartment
+      .query()
+      .where('locker_id', locker.id)
+
+    for (const compartment of compartments) {
+      await AccessPermissionCompartment.firstOrCreate({
+        accessPermissionId: accessPermission.id,
+        compartmentId: compartment.id,
+      })
+    }
+
     locker.areaId = payload.area_id
     await locker.save()
 
