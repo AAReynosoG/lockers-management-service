@@ -11,10 +11,13 @@ import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Organization from '#models/organization'
 import {
   assignUserToCompartmentParamsValidator,
-  getUsersWithLockersParamsValidator,
-  lockerParamsValidator,
+  getUsersWithLockersParamsValidator, lockerIdParamsValidator,
+  lockerParamsValidator, moveLockerToAreaValidator,
 } from '#validators/locker'
 import Schedule from '#models/schedule'
+import Area from '#models/area'
+import ScheduleService from '#services/schedule_service'
+import { createScheduleValidator } from '#validators/schedule'
 
 export default class LockersController {
   async getLockerCompartments({request, passportUser, response}: HttpContext) {
@@ -312,5 +315,56 @@ export default class LockersController {
         has_previous_page: usersQuery.currentPage > 1,
       }
     )
+  }
+
+  async moveLockerToArea({ request, response, passportUser }: HttpContext) {
+    const payload = await request.validateUsing(moveLockerToAreaValidator)
+
+    const organization = await Organization.query()
+      .where('id', payload.organization_id)
+      .where('created_by', passportUser.id)
+      .first()
+
+    if (!organization) return sendErrorResponse(response, 403, 'You must be the owner of this organization')
+
+    const area = await Area.query()
+      .where('id', payload.area_id)
+      .where('organization_id', payload.organization_id)
+      .first()
+
+    if (!area) return sendErrorResponse(response, 404, 'The area does not belong to the given organization')
+
+    let locker = await Locker.findBy('serial_number', payload.serial_number)
+
+    if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
+
+    if (locker.areaId) {
+      await locker.load('area')
+      const originOrgId = locker.area?.organizationId
+
+      if (originOrgId !== payload.organization_id) {
+        const isOwnerOfOrigin = await Organization.query()
+          .where('id', originOrgId)
+          .where('created_by', passportUser.id)
+          .first()
+
+        if (!isOwnerOfOrigin) return sendErrorResponse(response, 403, 'You cannot move a locker from an organization you do not own')
+      }
+    }
+
+    locker.areaId = payload.area_id
+    await locker.save()
+
+    if (payload.new_schedule && Array.isArray(payload.new_schedule)) {
+      for (const schedule of payload.new_schedule) {
+        try {
+          await ScheduleService.validateAndCreate(schedule, locker.id, passportUser.id)
+        } catch (error) {
+          return sendErrorResponse(response, 409, error.message)
+        }
+      }
+    }
+
+    return sendSuccessResponse(response, 200, 'Operation completed successfully')
   }
 }

@@ -18,7 +18,6 @@ export default class AccessPermission extends BaseModel {
   @column({columnName: 'locker_id'})
   declare lockerId: number
 
-
   @belongsTo(() => Locker, {
     foreignKey: 'lockerId',
   })

@@ -17,10 +17,13 @@ export default class Organization extends BaseModel {
   @column({columnName: 'created_by'})
   declare createdById: number
 
+  @column({columnName: 'created_by'})
+  declare createdBy: number
+
   @belongsTo(() => User, {
-    foreignKey: 'created_by',
+    foreignKey: 'createdBy',
   })
-  declare createdBy: BelongsTo<typeof User>
+  declare creator: BelongsTo<typeof User>
 
   @hasMany(() => Area)
   declare areas: HasMany<typeof Area>
