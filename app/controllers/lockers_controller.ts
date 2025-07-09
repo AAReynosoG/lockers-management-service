@@ -17,6 +17,7 @@ import {
 import Schedule from '#models/schedule'
 import Area from '#models/area'
 import ScheduleService from '#services/schedule_service'
+import { IsAdminService } from '#services/is_admin_service'
 
 export default class LockersController {
   async getLockerCompartments({request, passportUser, response}: HttpContext) {
@@ -197,16 +198,8 @@ export default class LockersController {
       return sendErrorResponse(response, 404, `User doesn't exist. An invitation email has been sent to their email!`)
     }
 
-    const actingRole = await LockerUserRole.findBy({
-      lockerId: locker.id,
-      userId: passportUser.id,
-    })
-
-    const isAdmin = actingRole && ['admin', 'super_admin'].includes(actingRole.role)
-
-    if (!isAdmin) {
-      return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
-    }
+    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id)
+    if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
 
     const targetRole = await LockerUserRole.firstOrCreate(
       { lockerId: locker.id, userId: user.id },
