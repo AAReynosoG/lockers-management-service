@@ -198,7 +198,10 @@ export default class LockersController {
       return sendErrorResponse(response, 404, `User doesn't exist. An invitation email has been sent to their email!`)
     }
 
-    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id)
+    const isSuperAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['super_admin'])
+    if(!isSuperAdmin && payload.role == 'admin') return sendErrorResponse(response, 403, 'You must be super_admin in that Locker to add a new admin')
+
+    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
 
     const targetRole = await LockerUserRole.firstOrCreate(

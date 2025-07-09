@@ -12,7 +12,7 @@ export default class SchedulesController {
     const payload = await request.validateUsing(createScheduleValidator)
     const { lockerId } = await lockerIdParamsValidator.validate(request.params())
 
-    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id)
+    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
 
     try {
@@ -28,7 +28,7 @@ export default class SchedulesController {
     const payload = await request.validateUsing(updateScheduleValidator)
     const { lockerId, scheduleId } = await updateScheduleParamsValidator.validate(request.params())
 
-    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id)
+    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
 
     try {
@@ -46,7 +46,7 @@ export default class SchedulesController {
     const limit = Number(request.input('limit', 10))
     const { lockerId } = await lockerIdParamsValidator.validate(request.params())
 
-    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id)
+    const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
 
     const schedulesQuery = await Schedule
