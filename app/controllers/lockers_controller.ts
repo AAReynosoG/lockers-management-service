@@ -138,7 +138,7 @@ export default class LockersController {
     const queryResults = lockersQuery.toJSON()
 
     const items = queryResults.data.map((locker) => ({
-      id: locker.id,
+      locker_id: locker.id,
       locker_serial_number: locker.serialNumber,
       locker_number: locker.lockerNumber,
       area_id: locker.areaId,
@@ -368,8 +368,15 @@ export default class LockersController {
         compartmentId: compartment.id,
       })
     }
+ 
+    const count = Number(
+      (await Locker.query()
+        .where('area_id', area.id)
+        .count('* as total'))[0].$extras.total
+    )
 
     locker.areaId = payload.area_id
+    locker.lockerNumber = count + 1
     await locker.save()
 
     if (payload.new_schedule && Array.isArray(payload.new_schedule)) {
