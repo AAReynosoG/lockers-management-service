@@ -12,6 +12,7 @@ router
     router.group(() => {
       router.post('', [OrganizationController, 'createOrganizationAndArea'])
       router.get('', [OrganizationController, 'getOrganizations'])
+      router.put(':organizationId', [OrganizationController, 'updateOrganization'])
     }).prefix('/organizations')
 
     router.group(() => {
@@ -20,6 +21,7 @@ router
       router.put('', [LockerController, 'moveLockerToArea'])
       router.put(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
+      router.delete(':lockerId/:compartmentNumber/:userId', [LockerController, 'removeUserFromCompartment'])
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
       router.get(':lockerId/schedules', [ScheduleController, 'getLockerSchedules'])

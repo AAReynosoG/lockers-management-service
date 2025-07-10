@@ -1,5 +1,5 @@
 import { HttpContext } from '@adonisjs/core/http'
-import { createOrganization } from '#validators/organization'
+import { createOrganization, updateOrganizationValidator } from '#validators/organization'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 import Area from '#models/area'
@@ -148,5 +148,34 @@ export default class OrganizationsController {
         has_previous_page: query.currentPage > 1,
       }
       )
+  }
+
+  async updateOrganization({response, request}: HttpContext) {
+    const organizationId = Number(request.param('organizationId'))
+    const payload = await request.validateUsing(updateOrganizationValidator)
+
+    const org = await Organization.find(organizationId)
+
+    if(!org){
+      return sendErrorResponse(response, 404, 'Organization not found')
+    }
+
+    if (payload.name) {
+      const existingOrg = await Organization
+      .query()
+      .where('name', payload.name)
+      .whereNot('id', organizationId)
+      .first()
+
+      if (existingOrg) return sendErrorResponse(response, 409, `Organization with name "${payload.name}" already exists`)
+    }
+
+    if(payload.name) org.name = payload.name
+
+    if(payload.description) org.description = payload.description
+
+    await org.save()
+
+    return sendSuccessResponse(response, 200, 'Operation completed successfully')
   }
 }
