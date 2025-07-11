@@ -13,6 +13,7 @@ router
       router.post('', [OrganizationController, 'createOrganizationAndArea'])
       router.get('', [OrganizationController, 'getOrganizations'])
       router.put(':organizationId', [OrganizationController, 'updateOrganization'])
+      router.get(':organizationId/areas', [OrganizationController, 'getOrganizationAreas'])
     }).prefix('/organizations')
 
     router.group(() => {

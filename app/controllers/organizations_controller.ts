@@ -178,4 +178,54 @@ export default class OrganizationsController {
 
     return sendSuccessResponse(response, 200, 'Operation completed successfully')
   }
+
+  async getOrganizationAreas({response, request, passportUser}: HttpContext) {
+      const organizationId = Number(request.param('organizationId'))
+
+      const org = await Organization.find(organizationId)
+
+      if(!org) return sendErrorResponse(response, 404, 'Organization not found')
+
+      const userHasAccess = await LockerUserRole
+      .query()
+      .where('user_id', passportUser.id)
+      .whereIn('role', ['admin', 'super_admin'])
+      .whereHas('locker', (lockerQuery) => {
+        lockerQuery.whereHas('area', (areaQuery) => {
+          areaQuery.where('organization_id', organizationId)
+        })
+      })
+      .first()
+
+      if(!userHasAccess) return sendErrorResponse(response, 403, 'You must be admin or super_admin to access this organization areas')
+
+      const areas = await Area
+      .query()
+      .where('organization_id', organizationId)
+      .preload('lockers', (lockerQuery) => {
+        lockerQuery.select('id', 'serial_number', 'area_id')
+      })  
+      .orderBy('id', 'asc')
+
+      const items = areas.map((area) => ({
+      id: area.id,
+      organization_id: area.organizationId,
+      name: area.name,
+      description: area.description,
+      lockers: area.lockers.map((locker) => ({
+        id: locker.id,
+        serial_number: locker.serialNumber
+      }))
+    }))
+
+    return sendSuccessResponse(
+      response, 
+      200,
+      'organization areas retrieved successfully',
+      {
+        items: items
+      }
+    )
+  }
+
 }
