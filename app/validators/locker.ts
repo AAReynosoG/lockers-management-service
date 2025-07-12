@@ -26,12 +26,6 @@ export const lockerIdParamsValidator = vine.compile(
   })
 )
 
-export const createLockerTopicsValidator = vine.compile(
-  vine.object({
-    topic: vine.string().trim(),
-  })
-)
-
 export const createLockerValidator = vine.compile(
   vine.object({
     serial_number: vine.string().trim().maxLength(100),
