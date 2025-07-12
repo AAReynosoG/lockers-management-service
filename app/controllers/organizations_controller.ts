@@ -9,6 +9,7 @@ import AccessPermission from '#models/access_permission'
 import LockerUserRole from '#models/locker_user_role'
 import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Compartment from '#models/compartment'
+import { validatePagination } from '../helpers/validate_query_params.js'
 
 export default class OrganizationsController {
   async createOrganizationAndArea({ request, response, passportUser }: HttpContext) {
@@ -111,9 +112,12 @@ export default class OrganizationsController {
   }
 
 
-  async getOrganizations({response, passportUser, request}: HttpContext) {
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+  async getOrganizations(ctx: HttpContext) {
+    const { response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit } = pagination
 
     const query = await Organization.query()
       .where('created_by', passportUser.id)
