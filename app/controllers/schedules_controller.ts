@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { createScheduleValidator, updateScheduleParamsValidator, updateScheduleValidator } from '#validators/schedule'
-import { lockerIdParamsValidator } from '#validators/locker'
+import { createScheduleValidator, updateScheduleValidator } from '#validators/schedule'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import ScheduleService from '#services/schedule_service'
 import { IsAdminService } from '#services/is_admin_service'
@@ -10,7 +9,7 @@ export default class SchedulesController {
 
   async createSchedule({ request, response, passportUser }: HttpContext) {
     const payload = await request.validateUsing(createScheduleValidator)
-    const { lockerId } = await lockerIdParamsValidator.validate(request.params())
+    const lockerId = Number(request.param('lockerId'))
 
     const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
@@ -26,7 +25,8 @@ export default class SchedulesController {
 
   async updateSchedule({ request, response, passportUser }: HttpContext) {
     const payload = await request.validateUsing(updateScheduleValidator)
-    const { lockerId, scheduleId } = await updateScheduleParamsValidator.validate(request.params())
+    const lockerId = Number(request.param('lockerId'))
+    const scheduleId = Number(request.param('scheduleId'))
 
     const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
@@ -44,7 +44,7 @@ export default class SchedulesController {
   async getLockerSchedules({request, response, passportUser}: HttpContext) {
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
-    const { lockerId } = await lockerIdParamsValidator.validate(request.params())
+    const lockerId = Number(request.param('lockerId'))
 
     const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
     if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')

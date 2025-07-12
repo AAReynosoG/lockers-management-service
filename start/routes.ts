@@ -20,14 +20,21 @@ router
 
     router.group(() => {
       router.get('/:lockerId/compartments', [LockerController, 'getLockerCompartments'])
+      .use(middleware.validateNumericParams(['lockerId']))
       router.get('', [LockerController, 'getLockers'])
       router.put('', [LockerController, 'moveLockerToArea'])
       router.put(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
+      .use(middleware.validateNumericParams(['lockerId', 'compartmentNumber']))
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
+      .use(middleware.validateNumericParams(['organizationId']))
       router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
+      .use(middleware.validateNumericParams(['lockerId', 'userId']))
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
+      .use(middleware.validateNumericParams(['lockerId']))
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
+      .use(middleware.validateNumericParams(['lockerId', 'scheduleId']))
       router.get(':lockerId/schedules', [ScheduleController, 'getLockerSchedules'])
+      .use(middleware.validateNumericParams(['lockerId']))
     }).prefix('/lockers')
 
   })

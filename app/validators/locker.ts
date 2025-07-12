@@ -1,31 +1,6 @@
 import vine from '@vinejs/vine'
 import { baseScheduleSchema } from '#validators/schedule'
 
-export const lockerParamsValidator = vine.compile(
-  vine.object({
-    lockerId: vine.number().positive(),
-  })
-)
-
-export const assignUserToCompartmentParamsValidator = vine.compile(
-  vine.object({
-    lockerId: vine.number().positive(),
-    compartmentNumber: vine.number().positive(),
-  })
-)
-
-export const getUsersWithLockersParamsValidator = vine.compile(
-  vine.object({
-    organizationId: vine.number().positive(),
-  })
-)
-
-export const lockerIdParamsValidator = vine.compile(
-  vine.object({
-    lockerId: vine.number().positive(),
-  })
-)
-
 export const createLockerValidator = vine.compile(
   vine.object({
     serial_number: vine.string().trim().maxLength(100),

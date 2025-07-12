@@ -10,9 +10,7 @@ import AccessPermission from '#models/access_permission'
 import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Organization from '#models/organization'
 import {
-  assignUserToCompartmentParamsValidator,
-  getUsersWithLockersParamsValidator,
-  lockerParamsValidator, moveLockerToAreaValidator,
+  moveLockerToAreaValidator,
 } from '#validators/locker'
 import Schedule from '#models/schedule'
 import Area from '#models/area'
@@ -23,8 +21,7 @@ export default class LockersController {
   async getLockerCompartments({request, passportUser, response}: HttpContext) {
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
-    const params = await lockerParamsValidator.validate(request.params())
-    const lockerId = params.lockerId
+    const lockerId = Number(request.param('lockerId'))
 
     const locker = await Locker
       .query()
@@ -171,9 +168,8 @@ export default class LockersController {
 
   async assignUserToCompartment({request, response, passportUser}: HttpContext) {
     const payload = await request.validateUsing(assignUserToCompartment)
-    const params = await assignUserToCompartmentParamsValidator.validate(request.params())
-    const lockerId = params.lockerId
-    const compartmentNumber = params.compartmentNumber
+    const lockerId = Number(request.param('lockerId'))
+    const compartmentNumber = Number(request.param('compartmentNumber'))
 
     const locker = await Locker
     .query()
@@ -265,9 +261,7 @@ export default class LockersController {
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
     const role = request.input('role')
-
-    const params = await getUsersWithLockersParamsValidator.validate(request.params())
-    const organizationId = params.organizationId
+    const organizationId = Number(request.param('organizationId'))
 
     const org = await Organization.findBy('id', organizationId)
 
