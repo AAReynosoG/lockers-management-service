@@ -4,6 +4,7 @@ import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import ScheduleService from '#services/schedule_service'
 import { IsAdminService } from '#services/is_admin_service'
 import Schedule from '#models/schedule'
+import { validatePagination } from '../helpers/validate_query_params.js'
 
 export default class SchedulesController {
 
@@ -41,9 +42,12 @@ export default class SchedulesController {
 
   }
 
-  async getLockerSchedules({request, response, passportUser}: HttpContext) {
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+  async getLockerSchedules(ctx: HttpContext) {
+    const { request, response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit } = pagination
     const lockerId = Number(request.param('lockerId'))
 
     const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
