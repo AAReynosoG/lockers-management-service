@@ -175,7 +175,13 @@ export default class LockersController {
     const lockerId = params.lockerId
     const compartmentNumber = params.compartmentNumber
 
-    const locker = await Locker.findBy('id', lockerId)
+    const locker = await Locker
+    .query()
+    .where('id', lockerId)
+    .preload('area', (areaQuery) => {
+      areaQuery.preload('organization')
+    })
+    .first()
 
     if(!locker) {
       return sendErrorResponse(response, 404, `Locker doesn't found`)
@@ -198,11 +204,13 @@ export default class LockersController {
       return sendErrorResponse(response, 404, `User doesn't exist. An invitation email has been sent to their email!`)
     }
 
-    const isSuperAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['super_admin'])
-    if(!isSuperAdmin && payload.role == 'admin') return sendErrorResponse(response, 403, 'You must be super_admin in that Locker to add a new admin')
-
     const isAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['admin', 'super_admin'])
-    if(!isAdmin) return sendErrorResponse(response, 403, 'You must be an admin or super_admin in that Locker')
+    if (!isAdmin) return sendErrorResponse(response, 403, 'You must be admin or super_admin in the locker to assign users to compartments')
+    
+    if (payload.role === 'admin') {
+      const isSuperAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['super_admin'])
+      if (!isSuperAdmin) return sendErrorResponse(response, 403, 'You must be super_admin in the locker to assign admin role')
+    }
 
     const targetRole = await LockerUserRole.firstOrCreate(
       { lockerId: locker.id, userId: user.id },
@@ -219,10 +227,36 @@ export default class LockersController {
       userId: user.id,
     })
 
-    await AccessPermissionCompartment.firstOrCreate({
-      accessPermissionId: accessPermission.id,
-      compartmentId: compartment.id,
+    const existingCompartmentAccess = await AccessPermissionCompartment
+      .query()
+      .where('access_permission_id', accessPermission.id)
+      .where('compartment_id', compartment.id)
+      .first()
+
+    const wasAlreadyAssigned = !!existingCompartmentAccess
+
+    if (!wasAlreadyAssigned) {
+      await AccessPermissionCompartment.firstOrCreate({
+        accessPermissionId: accessPermission.id,
+        compartmentId: compartment.id,
+      })
+    }
+
+    if (!wasAlreadyAssigned) {
+    const org = locker.area?.organization?.name || 'Unknown Organization' 
+
+    await new ResendService().sendEmail(user.email, 
+      `Lockity - ${passportUser.name + ' ' + passportUser.lastName} (${passportUser.email}) granted you access to compartment of a Locker`, 
+      'linking_notification',
+    {
+      username: passportUser.name + ' ' + passportUser.lastName,
+      compartmentNumber: compartmentNumber,
+      organization: org,
+      lockerNumber: locker.lockerNumber,
+      area: locker.area?.name || 'Unknown Area',
+      role: payload.role,
     })
+  }
 
     return sendSuccessResponse(response, 201, 'Operation completed successfully')
   }
