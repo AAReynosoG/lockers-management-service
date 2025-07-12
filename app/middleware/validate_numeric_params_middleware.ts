@@ -8,9 +8,9 @@ export default class ValidateNumericParamsMiddleware {
     const invalidParams: Record<string, string> = {}
 
     for (const param of params) {
-      const value = ctx.request.param(param)
+      const value = Number(ctx.request.param(param))
 
-      if(!value || isNaN(Number(value)) || Number(value) <= 0) {
+      if(!value || isNaN(value) || value <= 0 || !Number.isInteger(value)) {
         invalidParams[param] = `${param} must be a positive number`
       }
     }
