@@ -16,11 +16,15 @@ import Schedule from '#models/schedule'
 import Area from '#models/area'
 import ScheduleService from '#services/schedule_service'
 import { IsAdminService } from '#services/is_admin_service'
+import { validatePagination } from '../helpers/validate_query_params.js'
 
 export default class LockersController {
-  async getLockerCompartments({request, passportUser, response}: HttpContext) {
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+  async getLockerCompartments(ctx: HttpContext) {
+    const { request, response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit } = pagination
     const lockerId = Number(request.param('lockerId'))
 
     const locker = await Locker
@@ -106,9 +110,12 @@ export default class LockersController {
     )
   }
 
-  async getLockers({ request, passportUser, response }: HttpContext) {
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+  async getLockers(ctx: HttpContext) {
+    const { request, response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit } = pagination
     const organizationId = Number(request.input('organizationId'))
     const showSchedules = request.input('showSchedules', 'false') === 'true'
 
@@ -257,9 +264,12 @@ export default class LockersController {
     return sendSuccessResponse(response, 201, 'Operation completed successfully')
   }
 
-  async getUsersWithLockersByOrganization({request, response, passportUser}: HttpContext) {
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+  async getUsersWithLockersByOrganization(ctx: HttpContext) {
+    const { request, response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit } = pagination
     const role = request.input('role')
     const organizationId = Number(request.param('organizationId'))
 
@@ -423,7 +433,7 @@ export default class LockersController {
   async removeUserAccessToCompartment({ request, response, passportUser }: HttpContext) {
     const lockerId = Number(request.param('lockerId'))
     const userId = Number(request.param('userId'))
-    const compartmentNumber = request.input('compartmentNumber')
+    const compartmentNumber = Number(request.input('compartmentNumber'))
     const deleteAllAccess = request.input('deleteAllAccess', 'false') === 'true'
 
     if(userId === passportUser.id) return sendErrorResponse(response, 400, 'You cannot remove your own access to a compartment budy!!!')
