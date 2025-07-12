@@ -13,7 +13,9 @@ router
       router.post('', [OrganizationController, 'createOrganizationAndArea'])
       router.get('', [OrganizationController, 'getOrganizations'])
       router.put(':organizationId', [OrganizationController, 'updateOrganization'])
+      .use(middleware.validateNumericParams(['organizationId']))
       router.get(':organizationId/areas', [OrganizationController, 'getOrganizationAreas'])
+      .use(middleware.validateNumericParams(['organizationId']))
     }).prefix('/organizations')
 
     router.group(() => {

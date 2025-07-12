@@ -151,7 +151,7 @@ export default class OrganizationsController {
   }
 
   async updateOrganization({response, request}: HttpContext) {
-    const organizationId = Number(request.param('organizationId'))
+    const organizationId = request.param('organizationId')
     const payload = await request.validateUsing(updateOrganizationValidator)
 
     const org = await Organization.find(organizationId)
@@ -180,7 +180,7 @@ export default class OrganizationsController {
   }
 
   async getOrganizationAreas({response, request, passportUser}: HttpContext) {
-      const organizationId = Number(request.param('organizationId'))
+      const organizationId = request.param('organizationId')
 
       const org = await Organization.find(organizationId)
 
@@ -197,13 +197,19 @@ export default class OrganizationsController {
       })
       .first()
 
-      if(!userHasAccess) return sendErrorResponse(response, 403, 'You must be admin or super_admin to access this organization areas')
+      if(!userHasAccess) return sendErrorResponse(response, 403, 'You must be admin or super_admin in one of the lockers to access this organization areas')
 
       const areas = await Area
       .query()
       .where('organization_id', organizationId)
       .preload('lockers', (lockerQuery) => {
-        lockerQuery.select('id', 'serial_number', 'area_id')
+        lockerQuery
+        .select('id', 'serial_number', 'area_id')
+        .whereHas('lockerUserRoles', (roleQuery) => {
+          roleQuery
+            .where('user_id', passportUser.id)
+            .whereIn('role', ['admin', 'super_admin'])
+        })
       })  
       .orderBy('id', 'asc')
 
