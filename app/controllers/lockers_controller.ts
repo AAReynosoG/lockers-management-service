@@ -425,4 +425,66 @@ export default class LockersController {
 
     return sendSuccessResponse(response, 200, 'Operation completed successfully')
   }
+
+  async removeUserAccessToCompartment({ request, response, passportUser }: HttpContext) {
+    const lockerId = Number(request.param('lockerId'))
+    const userId = Number(request.param('userId'))
+    const compartmentNumber = request.input('compartmentNumber')
+    const deleteAllAccess = request.input('deleteAllAccess', 'false') === 'true'
+
+    if(userId === passportUser.id) return sendErrorResponse(response, 400, 'You cannot remove your own access to a compartment budy!!!')
+
+    const locker = await Locker.find(lockerId)
+    if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
+
+    const isSuperAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['super_admin'])
+    if (!isSuperAdmin) return sendErrorResponse(response, 403, 'You must be super_admin in the locker to remove user access')
+
+    const accessPermission = await AccessPermission.query()
+      .where('locker_id', lockerId)
+      .where('user_id', userId)
+      .first()
+
+    if (!accessPermission) return sendErrorResponse(response, 404, 'Access permission not found for the user')
+
+    const lockerUserRole = await LockerUserRole.query()
+      .where('locker_id', lockerId)
+      .where('user_id', userId)
+      .first()
+
+    if (!lockerUserRole) return sendErrorResponse(response, 404, 'It seems that the user does not have access to this locker')
+
+    if (deleteAllAccess) {
+      const allCompartmentAccess = await AccessPermissionCompartment.query()
+      .where('access_permission_id', accessPermission.id)
+
+      for (const apc of allCompartmentAccess) {
+        await apc.delete()
+      }
+
+      await accessPermission.delete()
+      await lockerUserRole.delete()
+    } else {
+      if (!compartmentNumber) return sendErrorResponse(response, 400, 'compartmentNumber is required when deleteAllAccess is false')
+      if (isNaN(compartmentNumber)) return sendErrorResponse(response, 400, 'Compartment number must be a number')
+
+      const compartment = await Compartment.query()
+      .where('locker_id', lockerId)
+      .where('compartment_number', compartmentNumber)
+      .first()
+
+      if (!compartment) return sendErrorResponse(response, 404, 'Compartment not found')
+
+      const accessPermissionCompartment = await AccessPermissionCompartment.query()
+        .where('access_permission_id', accessPermission.id)
+        .where('compartment_id', compartment.id)
+        .first()
+
+      if (!accessPermissionCompartment) return sendErrorResponse(response, 404, 'Access permission compartment not found')
+
+      await accessPermissionCompartment.delete()
+    }
+
+    return sendSuccessResponse(response, 200, 'User access to compartment removed successfully')
+  }
 }

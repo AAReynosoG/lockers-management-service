@@ -22,6 +22,7 @@ router
       router.put('', [LockerController, 'moveLockerToArea'])
       router.put(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
+      router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
       router.get(':lockerId/schedules', [ScheduleController, 'getLockerSchedules'])
