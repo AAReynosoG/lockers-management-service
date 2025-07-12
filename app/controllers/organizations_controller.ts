@@ -155,7 +155,7 @@ export default class OrganizationsController {
   }
 
   async updateOrganization({response, request}: HttpContext) {
-    const organizationId = request.param('organizationId')
+    const organizationId = Number(request.param('organizationId'))
     const payload = await request.validateUsing(updateOrganizationValidator)
 
     const org = await Organization.find(organizationId)
@@ -184,7 +184,7 @@ export default class OrganizationsController {
   }
 
   async getOrganizationAreas({response, request, passportUser}: HttpContext) {
-      const organizationId = request.param('organizationId')
+      const organizationId = Number(request.param('organizationId'))
 
       const org = await Organization.find(organizationId)
 

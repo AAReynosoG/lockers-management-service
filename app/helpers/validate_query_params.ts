@@ -22,7 +22,7 @@ export async function validatePagination(ctx: HttpContext): Promise<{ page: numb
     } else {
       invalidQueryParams['general'] = error.message || 'Invalid pagination parameters'
     }
-    sendErrorResponse(ctx.response, 400, 'Invalid query params' ,invalidQueryParams)
+    sendErrorResponse(ctx.response, 400, 'Invalid query params', invalidQueryParams)
     return null
   }
 }
