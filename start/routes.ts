@@ -30,6 +30,8 @@ router
       router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
       .use(middleware.validateNumericParams(['lockerId', 'userId']))
       router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
+      router.get(':areaId', [LockerController, 'getAreaLockers'])
+      .use(middleware.validateNumericParams(['areaId']))
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])

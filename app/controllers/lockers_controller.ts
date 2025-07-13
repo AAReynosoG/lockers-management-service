@@ -537,6 +537,53 @@ export default class LockersController {
         has_previous_page: lockersQuery.currentPage > 1,
       }
     )
-
   }
+
+  async getAreaLockers(ctx: HttpContext) {
+    const { request, response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit} = pagination
+    const areaId = Number(request.param('areaId'))
+
+    const lockersQuery = await Locker.query()
+      .where('area_id', areaId)
+      .whereHas('lockerUserRoles', (lurQuery) => {
+        lurQuery
+          .where('user_id', passportUser.id)
+          .whereIn('role', ['admin', 'super_admin'])
+      })
+      .preload('area', (areaQuery) => {
+        areaQuery.preload('organization')
+      })
+      .orderBy('id', 'asc')
+      .paginate(page, limit)
+
+    const queryResults = lockersQuery.toJSON()
+
+    const items = queryResults.data.map((locker) => ({
+      locker_id: locker.id,
+      locker_serial_number: locker.serialNumber,
+      organization_id: locker.area?.organization?.id,
+      organization_name: locker.area?.organization?.name,
+      area_id: locker.area?.id,
+      area_name: locker.area?.name,
+    }));
+
+    return sendSuccessResponse(
+      response,
+      200,
+      'Area lockers retrieved successfully',
+      {
+        items: items,
+        total: lockersQuery.total,
+        page: page,
+        limit: limit,
+        has_next_page: lockersQuery.currentPage < lockersQuery.lastPage,
+        has_previous_page: lockersQuery.currentPage > 1,
+      }
+    )
+  
+   }
 }
