@@ -9,12 +9,6 @@ const AreaController = () => import('#controllers/areas_controller')
 
 router
   .group(() => {
-
-    router.group(() => { 
-      router.put(':areaId', [AreaController, 'updateArea'])
-      .use(middleware.validateNumericParams(['areaId']))
-    }).prefix('/areas')
-
     router.group(() => {
       router.post('', [OrganizationController, 'createOrganizationAndArea'])
       router.get('', [OrganizationController, 'getOrganizations'])
@@ -25,6 +19,8 @@ router
 
       router.post(':organizationId/areas', [AreaController, 'createArea'])
       .use(middleware.validateNumericParams(['organizationId']))
+      router.put(':areaId/areas', [AreaController, 'updateArea'])
+      .use(middleware.validateNumericParams(['areaId']))
     }).prefix('/organizations')
 
     router.group(() => {
@@ -59,5 +55,6 @@ router
     .group(() => {
       router.get('/:serialNumber', [LockerConfigController, 'getLockerConfig'])
       router.post('create-locker', [LockerConfigController, 'createLocker'])
+      router.get('schedules/:serialNumber', [LockerConfigController, 'getLockerSchedules'])
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
