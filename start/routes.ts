@@ -29,6 +29,7 @@ router
       .use(middleware.validateNumericParams(['organizationId']))
       router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
       .use(middleware.validateNumericParams(['lockerId', 'userId']))
+      router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
@@ -38,7 +39,6 @@ router
       router.delete(':lockerId/schedules/delete', [ScheduleController, 'deleteSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
     }).prefix('/lockers')
-
   })
   .use(middleware.passportAuth())
   .prefix('/api')

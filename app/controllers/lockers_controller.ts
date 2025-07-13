@@ -493,4 +493,50 @@ export default class LockersController {
 
     return sendSuccessResponse(response, 200, 'User access to compartment removed successfully')
   }
+
+  async lockersWithoutSchedules(ctx: HttpContext) {
+    const { response, passportUser } = ctx
+    const pagination = await validatePagination(ctx)
+    if (!pagination) return
+
+    const { page, limit } = pagination
+
+    const lockersQuery = await Locker.query()
+      .whereHas('lockerUserRoles', (lurQuery) => {
+        lurQuery
+          .where('user_id', passportUser.id)
+          .whereIn('role', ['admin', 'super_admin'])
+      })
+      .whereDoesntHave('schedules', () => {})
+      .orderBy('id', 'asc')
+      .preload('area', (areaQuery) => {
+        areaQuery.preload('organization')
+      })
+      .paginate(page, limit)
+
+    const queryResults = lockersQuery.toJSON()
+
+    const items = queryResults.data.map((locker) => ({
+      locker_id: locker.id,
+      locker_serial_number: locker.serialNumber,
+      locker_number: locker.lockerNumber,
+      area: locker.area?.name,
+      organization: locker.area?.organization?.name,
+    }))
+
+    return sendSuccessResponse(
+      response,
+      200,
+      'Lockers without schedules retrieved successfully',
+      {
+        items: items,
+        total: lockersQuery.total,
+        page: page,
+        limit: limit,
+        has_next_page: lockersQuery.currentPage < lockersQuery.lastPage,
+        has_previous_page: lockersQuery.currentPage > 1,
+      }
+    )
+
+  }
 }
