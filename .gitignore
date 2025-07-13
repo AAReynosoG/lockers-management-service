@@ -9,6 +9,8 @@ tmp
 .env.production.local
 .env.development.local
 config/passport/*.key
+config/mysql-certs/*.pem
+config/database.ts
 
 # Frontend assets compiled code
 public/assets

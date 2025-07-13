@@ -470,7 +470,6 @@ export default class LockersController {
       await lockerUserRole.delete()
     } else {
       if (!compartmentNumber) return sendErrorResponse(response, 400, 'compartmentNumber is required when deleteAllAccess is false')
-      if (isNaN(compartmentNumber)) return sendErrorResponse(response, 400, 'Compartment number must be a number')
 
       const compartment = await Compartment.query()
       .where('locker_id', lockerId)
