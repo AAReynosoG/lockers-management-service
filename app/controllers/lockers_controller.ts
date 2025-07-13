@@ -17,6 +17,7 @@ import Area from '#models/area'
 import ScheduleService from '#services/schedule_service'
 import { IsAdminService } from '#services/is_admin_service'
 import { validatePagination } from '../helpers/validate_query_params.js'
+import { isInteger } from '@sindresorhus/is'
 
 export default class LockersController {
   async getLockerCompartments(ctx: HttpContext) {
@@ -470,6 +471,7 @@ export default class LockersController {
       await lockerUserRole.delete()
     } else {
       if (!compartmentNumber) return sendErrorResponse(response, 400, 'compartmentNumber is required when deleteAllAccess is false')
+      if(isNaN(compartmentNumber) || !isInteger(compartmentNumber)) return sendErrorResponse(response, 400, 'compartmentNumber must be a integer')
 
       const compartment = await Compartment.query()
       .where('locker_id', lockerId)
