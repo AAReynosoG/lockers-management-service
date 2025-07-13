@@ -35,6 +35,8 @@ router
       .use(middleware.validateNumericParams(['lockerId', 'scheduleId']))
       router.get(':lockerId/schedules', [ScheduleController, 'getLockerSchedules'])
       .use(middleware.validateNumericParams(['lockerId']))
+      router.delete(':lockerId/schedules/delete', [ScheduleController, 'deleteSchedule'])
+      .use(middleware.validateNumericParams(['lockerId']))
     }).prefix('/lockers')
 
   })
