@@ -5,6 +5,7 @@ const OrganizationController = () => import('#controllers/organizations_controll
 const LockerController = () => import('#controllers/lockers_controller')
 const LockerConfigController = () => import('#controllers/lockers_configs_controller')
 const ScheduleController = () => import('#controllers/schedules_controller')
+const AreaController = () => import('#controllers/areas_controller')
 
 router
   .group(() => {
@@ -15,6 +16,8 @@ router
       router.put(':organizationId', [OrganizationController, 'updateOrganization'])
       .use(middleware.validateNumericParams(['organizationId']))
       router.get(':organizationId/areas', [OrganizationController, 'getOrganizationAreas'])
+      .use(middleware.validateNumericParams(['organizationId']))
+      router.post(':organizationId/areas', [AreaController, 'createArea'])
       .use(middleware.validateNumericParams(['organizationId']))
     }).prefix('/organizations')
 
