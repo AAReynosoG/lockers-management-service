@@ -10,6 +10,11 @@ const AreaController = () => import('#controllers/areas_controller')
 router
   .group(() => {
 
+    router.group(() => { 
+      router.put(':areaId', [AreaController, 'updateArea'])
+      .use(middleware.validateNumericParams(['areaId']))
+    }).prefix('/areas')
+
     router.group(() => {
       router.post('', [OrganizationController, 'createOrganizationAndArea'])
       router.get('', [OrganizationController, 'getOrganizations'])
@@ -17,6 +22,7 @@ router
       .use(middleware.validateNumericParams(['organizationId']))
       router.get(':organizationId/areas', [OrganizationController, 'getOrganizationAreas'])
       .use(middleware.validateNumericParams(['organizationId']))
+
       router.post(':organizationId/areas', [AreaController, 'createArea'])
       .use(middleware.validateNumericParams(['organizationId']))
     }).prefix('/organizations')
@@ -35,6 +41,7 @@ router
       router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
       router.get(':areaId', [LockerController, 'getAreaLockers'])
       .use(middleware.validateNumericParams(['areaId']))
+
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
       router.put(':lockerId/schedules/:scheduleId', [ScheduleController, 'updateSchedule'])
