@@ -40,7 +40,7 @@ export default class LockersConfigsController {
 
       return {
         id_usuario: ap.userId.toString(),
-        nombre_usuario: `${ap.user.name} ${ap.user.lastName} ${ap.user.secondLastName}`,
+        nombre_usuario: `${ap.user.name} ${ap.user.lastName}`,
         cajones_usuario: [...new Set(compartments)]
       }
     })
@@ -66,8 +66,9 @@ export default class LockersConfigsController {
     })
 
 
-    const commandBase = `lockers/${payload.serial_number}/command`
+    const commandBase = `/${locker.serialNumber}/command`
     const topics = [
+      `${locker.serialNumber}/action/change`,
       `${commandBase}/config`,
       `${commandBase}/toggle`,
       `${commandBase}/fingerprint`,
