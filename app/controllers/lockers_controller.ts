@@ -470,9 +470,10 @@ export default class LockersController {
       await accessPermission.delete()
       await lockerUserRole.delete()
     } else {
-      if (!compartmentNumber) return sendErrorResponse(response, 400, 'compartmentNumber is required when deleteAllAccess is false')
-      if(isNaN(compartmentNumber) || !isInteger(compartmentNumber)) return sendErrorResponse(response, 400, 'compartmentNumber must be a integer')
-
+      if(!compartmentNumber) return sendErrorResponse(response, 400, 'Invalid query params', {'compartmentNumber': 'compartmentNumber is required when deleteAllAccess is false'})
+      if(isNaN(compartmentNumber) || !isInteger(compartmentNumber) || compartmentNumber <= 0) 
+        return sendErrorResponse(response, 400, 'Invalid query params', {'compartmentNumber': 'compartmentNumber must be a positive integer'})
+        
       const compartment = await Compartment.query()
       .where('locker_id', lockerId)
       .where('compartment_number', compartmentNumber)
