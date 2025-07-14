@@ -127,4 +127,29 @@ export default class LockersConfigsController {
       }
     )
   }
+
+  async updateCompartmentStatus({request, response}: HttpContext) {
+    const serialNumber = String(request.param('serialNumber'))
+    const status = String(request.param('status'))
+    const compartmentNumber = Number(request.param('compartmentNumber'))
+
+    const locker = await Locker.findBy('serial_number', serialNumber)
+    if(!locker) return sendErrorResponse(response, 404, 'Locker not found')
+
+    const compartment = await Compartment.query()
+    .where('locker_id', locker.id)
+    .andWhere('compartment_number', compartmentNumber)
+    .first()
+
+    if(!compartment) return sendErrorResponse(response, 404, 'Compartment not found')
+
+    const allowedStatuses = ['open', 'closed', 'error', 'maintenance'] as const
+    if (!allowedStatuses.includes(status as any)) {
+      return sendErrorResponse(response, 400, 'Invalid compartment status')
+    }
+
+    compartment.status = status as typeof allowedStatuses[number]
+    await compartment.save()
+    return sendSuccessResponse(response, 200, 'Compartment status updated successfully.')
+  }
 }

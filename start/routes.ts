@@ -56,5 +56,7 @@ router
       router.get('/:serialNumber', [LockerConfigController, 'getLockerConfig'])
       router.post('create-locker', [LockerConfigController, 'createLocker'])
       router.get('schedules/:serialNumber', [LockerConfigController, 'getLockerSchedules'])
+      router.put(':serialNumber/:compartmentNumber/:status', [LockerConfigController, 'updateCompartmentStatus'])
+      .use(middleware.validateNumericParams(['compartmentNumber']))
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
