@@ -143,22 +143,39 @@ export default class LockersController {
 
     const queryResults = lockersQuery.toJSON()
 
-    const items = queryResults.data.map((locker) => ({
-      locker_id: locker.id,
-      locker_serial_number: locker.serialNumber,
-      locker_number: locker.lockerNumber,
-      area_id: locker.areaId,
-      area_name: locker.area?.name,
-      organization_id: locker.area?.organization?.id,
-      organization_name: locker.area?.organization?.name,
-      schedules: showSchedules ? locker.schedules.map((schedule: Schedule) => ({
-        schedule_id: schedule.id,
-        day_of_week: schedule.dayOfWeek,
-        start_time: schedule.startTime,
-        end_time: schedule.endTime,
-        repeat_schedule: schedule.repeatSchedule,
-        schedule_date: schedule.scheduleDate
-      })) : [],
+    const items = await Promise.all(queryResults.data.map(async (locker) => {
+      const userCompartments = await Compartment.query()
+        .where('locker_id', locker.id)
+        .whereHas('accessPermissionCompartments', (apcQuery) => {
+          apcQuery.whereHas('accessPermission', (apQuery) => {
+            apQuery.where('user_id', passportUser.id)
+            apQuery.where('locker_id', locker.id)
+          })
+        })
+        .select('id', 'compartment_number')
+        .orderBy('compartment_number', 'asc')
+
+      return {
+        locker_id: locker.id,
+        locker_serial_number: locker.serialNumber,
+        locker_number: locker.lockerNumber,
+        area_id: locker.areaId,
+        area_name: locker.area?.name,
+        organization_id: locker.area?.organization?.id,
+        organization_name: locker.area?.organization?.name,
+        schedules: showSchedules ? locker.schedules.map((schedule: Schedule) => ({
+          schedule_id: schedule.id,
+          day_of_week: schedule.dayOfWeek,
+          start_time: schedule.startTime,
+          end_time: schedule.endTime,
+          repeat_schedule: schedule.repeatSchedule,
+          schedule_date: schedule.scheduleDate
+        })) : [],
+        compartments: userCompartments.map(compartment => ({
+          compartment_id: compartment.id,
+          compartment_number: compartment.compartmentNumber,
+        }))
+      }
     }))
 
     return sendSuccessResponse(
