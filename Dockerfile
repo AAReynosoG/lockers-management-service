@@ -26,5 +26,6 @@ COPY --from=production-deps /app/node_modules /app/node_modules
 COPY --from=build /app/build /app
 COPY config/passport/oauth-public.key /app/config/passport/oauth-public.key
 COPY config/mysql-certs/ /app/config/mysql-certs/
+COPY resources/views/ /app/resources/views/
 EXPOSE 8003
 CMD ["node", "./bin/server.js"]
