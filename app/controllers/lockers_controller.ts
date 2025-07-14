@@ -314,6 +314,7 @@ export default class LockersController {
       .orderBy('id', 'asc')
       .preload('lockerUserRoles', (lurQuery) => {
         lurQuery.preload('locker', (lockerQuery) => {
+          lockerQuery.preload('lockerCompartments')
           lockerQuery.preload('area', (areaQuery) => {
             areaQuery.preload('organization')
           })
@@ -335,7 +336,11 @@ export default class LockersController {
         role: role.role,
         organization: role.locker.area.organization.name,
         area: role.locker.area.name,
-        locker_number: role.locker.lockerNumber
+        locker_number: role.locker.lockerNumber,
+        compartments: role.locker.lockerCompartments.map((compartment) => ({
+          compartment_id: compartment.id,
+          compartment_number: compartment.compartmentNumber,
+        }))
       }))
     }))
 
