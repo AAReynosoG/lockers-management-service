@@ -18,6 +18,7 @@ import ScheduleService from '#services/schedule_service'
 import { IsAdminService } from '#services/is_admin_service'
 import { validatePagination } from '../helpers/validate_query_params.js'
 import { isInteger } from '@sindresorhus/is'
+import { LockerNumberingService } from '#services/locker_numbering_service'
 
 export default class LockersController {
   async getLockerCompartments(ctx: HttpContext) {
@@ -408,14 +409,10 @@ export default class LockersController {
       })
     }
  
-    const count = Number(
-      (await Locker.query()
-        .where('area_id', area.id)
-        .count('* as total'))[0].$extras.total
-    )
+    const nextNumber = await LockerNumberingService.assignNextNumber(locker.id, payload.area_id)
 
     locker.areaId = payload.area_id
-    locker.lockerNumber = count + 1
+    locker.lockerNumber = nextNumber
     await locker.save()
 
     if (payload.new_schedule && Array.isArray(payload.new_schedule)) {

@@ -10,6 +10,7 @@ import LockerUserRole from '#models/locker_user_role'
 import AccessPermissionCompartment from '#models/access_permission_compartment'
 import Compartment from '#models/compartment'
 import { validatePagination } from '../helpers/validate_query_params.js'
+import { LockerNumberingService } from '#services/locker_numbering_service'
 
 export default class OrganizationsController {
   async createOrganizationAndArea({ request, response, passportUser }: HttpContext) {
@@ -69,14 +70,10 @@ export default class OrganizationsController {
         return sendErrorResponse(response, 409, `The locker with serial number ${locker.serialNumber} is already linked to an organization and area`)
       }
 
-      const count = Number(
-        (await Locker.query({ client: trx })
-          .where('area_id', area.id)
-          .count('* as total'))[0].$extras.total
-      )
+      const nextNumber = await LockerNumberingService.assignFirstNumber(area.id, trx)
 
       locker.areaId = area.id
-      locker.lockerNumber = count + 1
+      locker.lockerNumber = nextNumber
       locker.useTransaction(trx)
       await locker.save()
 
