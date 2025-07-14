@@ -98,4 +98,33 @@ export default class LockersConfigsController {
     return sendSuccessResponse(response, 201, 'Locker created successfully.')
   }
 
+  async getLockerSchedules({ request, response }: HttpContext) { 
+    const serialNumber = String(request.param('serialNumber'))
+
+    const locker = await Locker.query()
+      .where('serial_number', serialNumber)
+      .preload('schedules')
+      .first()
+
+    if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
+
+    const schedules = locker.schedules.map(schedule => ({
+      id: schedule.id,
+      day_of_week: schedule.dayOfWeek,
+      start_time: schedule.startTime,
+      end_time: schedule.endTime,
+      repeat_schedule: schedule.repeatSchedule,
+      schedule_date: schedule.scheduleDate
+    }))
+
+    return sendSuccessResponse(
+      response, 
+      200,
+      'Schedules retrieved successfully.',
+      { 
+        locker_id: locker.id,
+        schedules: schedules
+      }
+    )
+  }
 }
