@@ -305,20 +305,27 @@ export default class LockersController {
           })
           .whereHas('locker', (lockerQuery) => {
             lockerQuery.whereHas('area', (areaQuery) => {
-              areaQuery.whereHas('organization', (orgQuery) => {
-                orgQuery.where('id', organizationId)
-              })
+              areaQuery.where('organization_id', organizationId)
             })
           })
       })
       .orderBy('id', 'asc')
       .preload('lockerUserRoles', (lurQuery) => {
-        lurQuery.preload('locker', (lockerQuery) => {
-          lockerQuery.preload('lockerCompartments')
-          lockerQuery.preload('area', (areaQuery) => {
-            areaQuery.preload('organization')
+        lurQuery
+          .whereHas('locker', (lockerQuery) => {
+            lockerQuery.whereHas('area', (areaQuery) => {
+              areaQuery.where('organization_id', organizationId)
+            })
           })
-        })
+          .preload('locker', (lockerQuery) => {
+            lockerQuery
+              .whereHas('area', (areaQuery) => {
+                areaQuery.where('organization_id', organizationId)
+              })
+              .preload('area', (areaQuery) => {
+                areaQuery.preload('organization')
+              })
+          })
       })
       .paginate(page, limit)
 
