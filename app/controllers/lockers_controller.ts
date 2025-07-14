@@ -152,6 +152,7 @@ export default class LockersController {
       organization_id: locker.area?.organization?.id,
       organization_name: locker.area?.organization?.name,
       schedules: showSchedules ? locker.schedules.map((schedule: Schedule) => ({
+        schedule_id: schedule.id,
         day_of_week: schedule.dayOfWeek,
         start_time: schedule.startTime,
         end_time: schedule.endTime,
