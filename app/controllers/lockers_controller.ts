@@ -329,6 +329,7 @@ export default class LockersController {
       second_last_name: user.secondLastName,
       email: user.email,
       assigned_lockers: user.lockerUserRoles.map((role: LockerUserRole) => ({
+        locker_id: role.locker.id,
         serial_number: role.locker.serialNumber,
         role: role.role,
         organization: role.locker.area.organization.name,
