@@ -324,24 +324,40 @@ export default class LockersController {
 
     const queryResults = usersQuery.toJSON()
 
-    const items = queryResults.data.map((user) => ({
-      id: user.id,
-      name: user.name,
-      last_name: user.lastName,
-      second_last_name: user.secondLastName,
-      email: user.email,
-      assigned_lockers: user.lockerUserRoles.map((role: LockerUserRole) => ({
-        locker_id: role.locker.id,
-        serial_number: role.locker.serialNumber,
-        role: role.role,
-        organization: role.locker.area.organization.name,
-        area: role.locker.area.name,
-        locker_number: role.locker.lockerNumber,
-        compartments: role.locker.lockerCompartments.map((compartment) => ({
-          compartment_id: compartment.id,
-          compartment_number: compartment.compartmentNumber,
-        }))
+    const items = await Promise.all(queryResults.data.map(async (user) => {
+      const assigned_lockers = await Promise.all(user.lockerUserRoles.map(async (role: LockerUserRole) => {
+        const userCompartments = await Compartment.query()
+          .where('locker_id', role.locker.id)
+          .whereHas('accessPermissionCompartments', (apcQuery) => {
+            apcQuery.whereHas('accessPermission', (apQuery) => {
+              apQuery.where('user_id', user.id)
+              apQuery.where('locker_id', role.locker.id)
+            })
+          })
+          .select('id', 'compartment_number')
+
+        return {
+          locker_id: role.locker.id,
+          serial_number: role.locker.serialNumber,
+          role: role.role,
+          organization: role.locker.area.organization.name,
+          area: role.locker.area.name,
+          locker_number: role.locker.lockerNumber,
+          compartments: userCompartments.map(compartment => ({
+            compartment_id: compartment.id,
+            compartment_number: compartment.compartmentNumber,
+          }))
+        }
       }))
+
+      return {
+        id: user.id,
+        name: user.name,
+        last_name: user.lastName,
+        second_last_name: user.secondLastName,
+        email: user.email,
+        assigned_lockers: assigned_lockers
+      }
     }))
 
     return sendSuccessResponse(
