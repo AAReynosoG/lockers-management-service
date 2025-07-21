@@ -139,6 +139,7 @@ export default class LockersController {
       .if(showSchedules, (query) => {
         query.preload('schedules')
       })
+      .preload('lockerTopics')
       .orderBy('id', 'asc')
       .paginate(page, limit)
 

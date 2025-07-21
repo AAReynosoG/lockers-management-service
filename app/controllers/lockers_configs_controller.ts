@@ -13,7 +13,6 @@ export default class LockersConfigsController {
       .query()
       .where('serial_number', serialNumnber)
       .preload('lockerTopics')
-      .preload('lockerTopics')
       .preload('accessPermissions', (apQuery) => {
         apQuery
           .preload('user')
