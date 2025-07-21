@@ -19,6 +19,7 @@ import { IsAdminService } from '#services/is_admin_service'
 import { validatePagination } from '../helpers/validate_query_params.js'
 import { isInteger } from '@sindresorhus/is'
 import { LockerNumberingService } from '#services/locker_numbering_service'
+import LockerTopic from '#models/locker_topic'
 
 export default class LockersController {
   async getLockerCompartments(ctx: HttpContext) {
@@ -156,6 +157,7 @@ export default class LockersController {
         .orderBy('compartment_number', 'asc')
 
       return {
+        user_id: passportUser.id,
         locker_id: locker.id,
         locker_serial_number: locker.serialNumber,
         locker_number: locker.lockerNumber,
@@ -174,6 +176,11 @@ export default class LockersController {
         compartments: userCompartments.map(compartment => ({
           compartment_id: compartment.id,
           compartment_number: compartment.compartmentNumber,
+        })),
+        topics: locker.lockerTopics.map((topic: LockerTopic) => ({
+          topic_id: topic.id,
+          topic: topic.topic,
+          locker_id: topic.lockerId,
         }))
       }
     }))
