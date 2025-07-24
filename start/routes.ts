@@ -6,6 +6,7 @@ const LockerController = () => import('#controllers/lockers_controller')
 const LockerConfigController = () => import('#controllers/lockers_configs_controller')
 const ScheduleController = () => import('#controllers/schedules_controller')
 const AreaController = () => import('#controllers/areas_controller')
+const LogsController = () => import('#controllers/logs_controller')
 
 router
   .group(() => {
@@ -58,5 +59,6 @@ router
       router.get('schedules/:serialNumber', [LockerConfigController, 'getLockerSchedules'])
       router.put(':serialNumber/:compartmentNumber/:status', [LockerConfigController, 'updateCompartmentStatus'])
       .use(middleware.validateNumericParams(['compartmentNumber']))
+      router.post('store-log', [LogsController, 'storeLog'])
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
