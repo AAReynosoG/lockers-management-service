@@ -74,7 +74,8 @@ export default class LockersConfigsController {
       `${commandBase}/fingerprint`,
       `${commandBase}/alarm`,
       `${commandBase}/picture`,
-      `${commandBase}/change`
+      `${commandBase}/change`,
+      `${commandBase}/picture/get`
     ]
 
     await Promise.all(
