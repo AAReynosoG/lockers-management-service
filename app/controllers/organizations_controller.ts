@@ -110,17 +110,49 @@ export default class OrganizationsController {
 
 
   async getOrganizations(ctx: HttpContext) {
-    const { response, passportUser } = ctx
+    const { response, passportUser, request } = ctx
     const pagination = await validatePagination(ctx)
     if (!pagination) return
 
     const { page, limit } = pagination
 
-    const query = await Organization.query()
-      .where('created_by', passportUser.id)
-      .preload('areas')
-      .orderBy('id', 'asc')
-      .paginate(page, limit)
+    const role = String(request.param('role'))
+
+    if (!['super_admin', 'admin'].includes(role)) {
+      return sendErrorResponse(response, 400, 'Invalid role parameter. Must be "super_admin" or "admin".')
+    }
+
+    let query
+
+    if (role === 'super_admin') {
+      query = await Organization.query()
+        .where('created_by', passportUser.id)
+        .preload('areas')
+        .orderBy('id', 'asc')
+        .paginate(page, limit)
+    } else {
+      query = await Organization.query()
+        .whereHas('areas', (areaQuery) => {
+          areaQuery.whereHas('lockers', (lockerQuery) => {
+            lockerQuery.whereHas('lockerUserRoles', (roleQuery) => {
+              roleQuery
+                .where('user_id', passportUser.id)
+                .where('role', 'admin')
+            })
+          })
+        })
+        .preload('areas', (areaQuery) => {
+          areaQuery.whereHas('lockers', (lockerQuery) => {
+            lockerQuery.whereHas('lockerUserRoles', (roleQuery) => {
+              roleQuery
+                .where('user_id', passportUser.id)
+                .where('role', 'admin')
+            })
+          })
+        })
+        .orderBy('id', 'asc')
+        .paginate(page, limit)
+    }
 
     const queryResults = query.toJSON()
 
@@ -139,7 +171,7 @@ export default class OrganizationsController {
     return sendSuccessResponse(
       response,
       200,
-      'Organizations retrieved successfully',
+      `Organizations retrieved successfully for ${role}`,
       {
         items: items,
         total: query.total,
@@ -148,7 +180,7 @@ export default class OrganizationsController {
         has_next_page: query.currentPage < query.lastPage,
         has_previous_page: query.currentPage > 1,
       }
-      )
+    )
   }
 
   async updateOrganization({response, request}: HttpContext) {
