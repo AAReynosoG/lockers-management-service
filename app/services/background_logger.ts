@@ -4,15 +4,17 @@ import { SlackService } from './slack_service.js'
 class BackgroundLogger {
   private static queue: Array<{ data: any[], timestamp: Date }> = []
   private static isProcessing = false
+  private static collectionName = ''
 
-  static async addLogs(data: any[]) {
+  static async addLogs(data: any[], collectionName: string) {
     this.queue.push({
       data: data,
       timestamp: new Date()
     })
 
     if (!this.isProcessing) {
-      setImmediate(() => this.processQueue())
+        this.collectionName = collectionName
+        setImmediate(() => this.processQueue())
     }
   }
 
@@ -27,7 +29,7 @@ class BackgroundLogger {
       const logBatch = this.queue.shift()!
       
       try {
-        await storeMongoLogs(true, 'lockers_logs', logBatch.data)
+        await storeMongoLogs(true, this.collectionName, logBatch.data)
       } catch (error) {
         await new SlackService().sendExceptionMessage(error, 500)
       }

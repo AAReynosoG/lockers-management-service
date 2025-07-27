@@ -76,7 +76,7 @@ export default class LogsController {
             .filter(result => result.status === 'fulfilled')
             .map(result => (result as PromiseFulfilledResult<any>).value)
 
-            BackgroundLogger.addLogs(successful)
+            BackgroundLogger.addLogs(successful, 'lockers_logs')
 
             return sendSuccessResponse(response, 201, 'Logs processed', {
                 total: logs.length,
