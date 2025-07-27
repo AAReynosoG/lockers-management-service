@@ -7,6 +7,7 @@ const LockerConfigController = () => import('#controllers/lockers_configs_contro
 const ScheduleController = () => import('#controllers/schedules_controller')
 const AreaController = () => import('#controllers/areas_controller')
 const LogsController = () => import('#controllers/logs_controller')
+const MongosController = () => import('#controllers/mongos_controller')
 
 router
   .group(() => {
@@ -62,3 +63,5 @@ router
       router.post('store-log', [LogsController, 'storeLogs'])
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
+
+  router.post('/test/insert', [MongosController, 'insertTestData'])
