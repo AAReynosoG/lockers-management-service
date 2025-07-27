@@ -5,14 +5,16 @@ class BackgroundLogger {
   private static queue: Array<{ data: any[], timestamp: Date }> = []
   private static isProcessing = false
   private static collectionName = ''
+  private static insertMany = true
 
-  static async addLogs(data: any[], collectionName: string) {
+  static async addLogs(data: any, collectionName: string, insertMany: boolean = true) {
     this.queue.push({
       data: data,
       timestamp: new Date()
     })
 
     if (!this.isProcessing) {
+        this.insertMany = insertMany
         this.collectionName = collectionName
         setImmediate(() => this.processQueue())
     }
@@ -29,7 +31,7 @@ class BackgroundLogger {
       const logBatch = this.queue.shift()!
       
       try {
-        await storeMongoLogs(true, this.collectionName, logBatch.data)
+        await storeMongoLogs(this.insertMany, this.collectionName, logBatch.data)
       } catch (error) {
         await new SlackService().sendExceptionMessage(error, 500)
       }

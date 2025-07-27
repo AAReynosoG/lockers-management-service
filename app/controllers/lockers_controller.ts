@@ -20,6 +20,8 @@ import { validatePagination } from '../helpers/validate_query_params.js'
 import { isInteger } from '@sindresorhus/is'
 import { LockerNumberingService } from '#services/locker_numbering_service'
 import LockerTopic from '#models/locker_topic'
+import BackgroundLogger from '#services/background_logger'
+
 
 export default class LockersController {
   async getLockerCompartments(ctx: HttpContext) {
@@ -227,7 +229,10 @@ export default class LockersController {
       return sendErrorResponse(response, 404, `Compartment doesn't exist`)
     }
 
-    const user = await User.findBy('email', payload.user_email)
+    const user = await User.query()
+    .where('email', payload.user_email)
+    .preload('lockerUserRoles')
+    .first()
 
     if(!user) {
       await new ResendService().sendEmail(payload.user_email, 'Lockity - Invitation', 'invitation', { senderEmail: passportUser.email, guestEmail: payload.user_email})
@@ -274,20 +279,51 @@ export default class LockersController {
     }
 
     if (!wasAlreadyAssigned) {
-    const org = locker.area?.organization?.name || 'Unknown Organization' 
+      const org = locker.area?.organization?.name || 'Unknown Organization' 
 
-    await new ResendService().sendEmail(user.email, 
-      `Lockity - ${passportUser.name + ' ' + passportUser.lastName} (${passportUser.email}) granted you access to compartment of a Locker`, 
-      'linking_notification',
-    {
-      username: passportUser.name + ' ' + passportUser.lastName,
-      compartmentNumber: compartmentNumber,
-      organization: org,
-      lockerNumber: locker.lockerNumber,
-      area: locker.area?.name || 'Unknown Area',
-      role: payload.role,
-    })
-  }
+      await new ResendService().sendEmail(user.email, 
+        `Lockity - ${passportUser.name + ' ' + passportUser.lastName} (${passportUser.email}) granted you access to compartment of a Locker`, 
+        'linking_notification',
+      {
+        username: passportUser.name + ' ' + passportUser.lastName,
+        compartmentNumber: compartmentNumber,
+        organization: org,
+        lockerNumber: locker.lockerNumber,
+        area: locker.area?.name || 'Unknown Area',
+        role: payload.role,
+      })
+    }
+
+    const passportUserRole = await LockerUserRole.query()
+      .where('lockerId', locker.id)
+      .where('userId', passportUser.id)
+      .first()
+
+    const data = {
+      description: `User ${user.name} ${user.lastName} (${user.email}) 
+      was assigned to compartment ${compartmentNumber} of locker ${locker.lockerNumber} 
+      in area ${locker.area?.name || 'Unknown Area'} by ${passportUser.name} ${passportUser.lastName} (${passportUser.email})`,
+      locker: locker ? {
+        locker_serial_number: locker.serialNumber,
+        manipulated_compartment: compartmentNumber,
+        number_in_area: locker.lockerNumber,
+        area_name: locker.area.name,
+        organization_name: locker.area.organization.name
+      } : {},
+      performed_by: {
+        full_name: `${passportUser.name} ${passportUser.lastName} ${passportUser.secondLastName}`,
+        email: passportUser.email,
+        role: passportUserRole ? passportUserRole.role : 'unknown role'
+      },
+      tartget_user: user ? {
+        full_name: `${user.name} ${user.lastName} ${user.secondLastName}`,
+        email: user.email,
+        role: payload.role
+      } : {},
+      timestamp: new Date().toISOString(),
+    }
+
+    BackgroundLogger.addLogs(data ,'audit_logs', false)
 
     return sendSuccessResponse(response, 201, 'Operation completed successfully')
   }
