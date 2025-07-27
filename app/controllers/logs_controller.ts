@@ -6,10 +6,13 @@ import { storeLogValidator } from '#validators/log'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Locker from '#models/locker'
 import LockerUserRole from '#models/locker_user_role'
+import BackgroundLogger from '#services/background_logger'
+import { SlackService } from '#services/slack_service'
 
 const supabaseUrl = env.get('SUPABASE_URL')!
 const supabaseKey = env.get('SUPABASE_API_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
+
 export default class LogsController {
     async storeLogs({request, response}: HttpContext) {
         const params = await request.validateUsing(storeLogValidator)
@@ -36,7 +39,7 @@ export default class LogsController {
             )
 
             const results = await Promise.allSettled(
-                logs.map(async (log, index) => {
+                logs.map(async (log) => {
                     const { image_base_64, file_name, serial_number, user_id, compartment_number, action, source } = log
 
                     const imageUploadPromise = (image_base_64 && file_name) 
@@ -49,22 +52,22 @@ export default class LogsController {
                     const [path] = await Promise.all([imageUploadPromise])
 
                     return {
-                    index,
-                    performedBy: userRole ? {
-                        fullName: `${userRole.user.name} ${userRole.user.lastName} ${userRole.user.secondLastName}`,
-                        email: userRole.user.email,
-                        role: userRole.role
-                    } : {},
-                    locker: locker ? {
-                        lockerSerialNumber: locker.serialNumber,
-                        manipulatedCompartment: compartment_number,
-                        numberInArea: locker.lockerNumber,
-                        areaName: locker.area.name,
-                        organizationName: locker.area.organization.name
-                    } : {},
-                    photo_path: path,
-                    action,
-                    source
+                        performed_by: userRole ? {
+                            full_name: `${userRole.user.name} ${userRole.user.lastName} ${userRole.user.secondLastName}`,
+                            email: userRole.user.email,
+                            role: userRole.role
+                        } : {},
+                        locker: locker ? {
+                            locker_serial_number: locker.serialNumber,
+                            manipulated_compartment: compartment_number,
+                            number_in_area: locker.lockerNumber,
+                            area_name: locker.area.name,
+                            organization_name: locker.area.organization.name
+                        } : {},
+                        photo_path: path,
+                        action,
+                        source,
+                        timestamp: new Date().toISOString(),
                     }
                 })
             )
@@ -73,7 +76,7 @@ export default class LogsController {
             .filter(result => result.status === 'fulfilled')
             .map(result => (result as PromiseFulfilledResult<any>).value)
 
-            this.printLogs(successful)
+            BackgroundLogger.addLogs(successful)
 
             return sendSuccessResponse(response, 201, 'Logs processed', {
                 total: logs.length,
@@ -89,8 +92,7 @@ export default class LogsController {
 
     private async uploadImage(image_base_64: string, file_name: string, serial_number: string): Promise<string> {
         try {
-            const base64Data = image_base_64.replace(/^data:image\/\w+;base64,/, '')
-            const buffer = Buffer.from(base64Data, 'base64')
+            const buffer = Buffer.from(image_base_64, 'base64')
             
             const { data } = await supabase.storage
             .from('lockity-images')
@@ -101,20 +103,8 @@ export default class LogsController {
             
             return data!.path
         } catch (error) {
-            console.error(`Error uploading image for ${serial_number}:`, error)
+            await new SlackService().sendExceptionMessage(error, 500)
             return ''
         }
-    }
-
-    private printLogs(logs: any[]) {
-        console.log('=== LOGS PROCESSED ===')
-        logs.forEach((log, index) => {
-            console.log(`\n--- Log ${index + 1} ---`)
-            console.log('performed_by:', log.performedBy)
-            console.log('locker:', log.locker)
-            console.log('photo_path:', log.photo_path)
-            console.log('action:', log.action)
-            console.log('source:', log.source)
-        })
     }
 }

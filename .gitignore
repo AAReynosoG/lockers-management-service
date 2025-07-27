@@ -11,6 +11,7 @@ tmp
 config/passport/*.key
 config/mysql-certs/*.pem
 config/database.ts
+config/mongo-certs
 
 # Frontend assets compiled code
 public/assets
