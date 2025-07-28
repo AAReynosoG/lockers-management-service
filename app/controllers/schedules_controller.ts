@@ -53,7 +53,7 @@ export default class SchedulesController {
           payload
         },
         tartget_user: null,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       }
 
       BackgroundLogger.addLogs(data ,'audit_logs', false)
@@ -107,7 +107,7 @@ export default class SchedulesController {
           payload
         },
         tartget_user: null,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       }
 
       BackgroundLogger.addLogs(data ,'audit_logs', false)
@@ -230,7 +230,7 @@ export default class SchedulesController {
         },
         extra: extra,
         tartget_user: null,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       }
 
       BackgroundLogger.addLogs(data ,'audit_logs', false)

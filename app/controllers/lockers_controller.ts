@@ -320,7 +320,7 @@ export default class LockersController {
         email: user.email,
         role: payload.role
       } : {},
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     }
 
     BackgroundLogger.addLogs(data ,'audit_logs', false)
