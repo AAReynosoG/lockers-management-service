@@ -315,7 +315,7 @@ export default class LockersController {
         email: passportUser.email,
         role: passportUserRole ? passportUserRole.role : 'unknown role'
       },
-      tartget_user: user ? {
+      target_user: user ? {
         full_name: `${user.name} ${user.lastName} ${user.secondLastName}`,
         email: user.email,
         role: payload.role

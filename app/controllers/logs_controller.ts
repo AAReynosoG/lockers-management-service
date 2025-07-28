@@ -17,7 +17,7 @@ const supabaseKey = env.get('SUPABASE_API_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default class LogsController {
-    async storeLogs({request, response}: HttpContext) {
+    async storeAccessLogs({request, response}: HttpContext) {
         const params = await request.validateUsing(storeLogValidator)
         const { logs } = params
 
@@ -111,7 +111,12 @@ export default class LogsController {
         }
     }
 
-    async getAccessLogs(ctx: HttpContext) {
+    private async getLogsBase(
+        ctx: HttpContext, 
+        collectionName: string, 
+        allowedRoles: string[],
+        validActions?: string[]
+    ) {
         const { request, response, passportUser } = ctx
         const pagination = await validatePagination(ctx)
         if (!pagination) return
@@ -127,7 +132,7 @@ export default class LogsController {
         
         if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
 
-        const isAdmin = await IsAdminService.isAdmin(locker.id, passportUser.id, ['admin', 'super_admin', 'user'])
+        const isAdmin = await IsAdminService.isAdmin(locker.id, passportUser.id, allowedRoles)
         if (!isAdmin) return sendErrorResponse(response, 403, 'You do not have access to this locker')
 
         const { page, limit } = pagination
@@ -138,8 +143,7 @@ export default class LogsController {
         const dateFrom = request.input('dateFrom')
         const dateTo = request.input('dateTo')
 
-        const validActions = ['opening', 'closing', 'failed_attempt']
-        if (action && !validActions.includes(action)) {
+        if (validActions && action && !validActions.includes(action)) {
             return sendErrorResponse(response, 400, `Invalid action. Must be one of: ${validActions.join(', ')}`)
         }
 
@@ -152,7 +156,7 @@ export default class LogsController {
 
         try {
             const db = await getDb('lockity_db')
-            const collection = db.collection('lockers_logs')
+            const collection = db.collection(collectionName)
 
             const mongoFilters: any = {
                 "locker.locker_serial_number": serialNumber
@@ -191,40 +195,103 @@ export default class LogsController {
                 .limit(limit)
                 .toArray()
 
-            const items = logs.map((log: any) => ({
-                id: log._id,
-                locker: {
-                    serial_number: log.locker?.locker_serial_number || '',
-                    number_in_the_area: log.locker?.number_in_area || 0,
-                    manipulated_compartment: log.locker?.manipulated_compartment || 0,
-                    organization_name: log.locker?.organization_name || '',
-                    area_name: log.locker?.area_name || ''
-                },
-                performed_by: {
-                    full_name: log.performed_by?.full_name || '',
-                    email: log.performed_by?.email || '',
-                    role: log.performed_by?.role || ''
-                },
-                source: log.source || '',
-                photo_path: log.photo_path || null,
-                timestamp: log.timestamp || null,
-                action: log.action || '',
-            }))
-
-            const totalPages = Math.ceil(total / limit)
-
-            return sendSuccessResponse(response, 200, 'Access logs retrieved successfully', {
-                items,
-                total,
-                page,
-                limit,
-                has_next_page: page < totalPages,
-                has_previous_page: page > 1
-            })
+            return { logs, total, page, limit }
 
         } catch (error) {
             await new SlackService().sendExceptionMessage(error, 500)
             return sendErrorResponse(response, 500, 'Error retrieving logs')
         }
+    }
+
+    async getAccessLogs(ctx: HttpContext) {
+        const { response } = ctx
+        const validActions = ['opening', 'closing', 'failed_attempt']
+        
+        const result = await this.getLogsBase(
+            ctx, 
+            'lockers_logs', 
+            ['admin', 'super_admin', 'user'],
+            validActions
+        )
+        
+        if (!result || 'success' in result) return result 
+
+        const { logs, total, page, limit } = result
+
+        const items = logs.map((log: any) => ({
+            id: log._id,
+            locker: {
+                serial_number: log.locker?.locker_serial_number || '',
+                number_in_the_area: log.locker?.number_in_area || 0,
+                manipulated_compartment: log.locker?.manipulated_compartment || 0,
+                organization_name: log.locker?.organization_name || '',
+                area_name: log.locker?.area_name || ''
+            },
+            performed_by: {
+                full_name: log.performed_by?.full_name || '',
+                email: log.performed_by?.email || '',
+                role: log.performed_by?.role || ''
+            },
+            source: log.source || '',
+            photo_path: log.photo_path || null,
+            timestamp: log.timestamp || null,
+            action: log.action || '',
+        }))
+
+        const totalPages = Math.ceil(total / limit)
+
+        return sendSuccessResponse(response, 200, 'Access logs retrieved successfully', {
+            items,
+            total,
+            page,
+            limit,
+            has_next_page: page < totalPages,
+            has_previous_page: page > 1
+        })
+}
+
+    async getAuditLogs(ctx: HttpContext) {
+        const { response } = ctx
+        
+        const result = await this.getLogsBase(
+            ctx, 
+            'audit_logs', 
+            ['admin', 'super_admin']
+        )
+        
+        if (!result || 'success' in result) return result 
+
+        const { logs, total, page, limit } = result
+
+        const items = logs.map((log: any) => ({
+            id: log._id,
+            description: log.description || '',
+            locker: {
+                serial_number: log.locker?.locker_serial_number || '',
+                number_in_the_area: log.locker?.number_in_area || 0,
+                manipulated_compartment: log.locker?.manipulated_compartment || null,
+                organization_name: log.locker?.organization_name || '',
+                area_name: log.locker?.area_name || ''
+            },
+            performed_by: {
+                full_name: log.performed_by?.full_name || '',
+                email: log.performed_by?.email || '',
+                role: log.performed_by?.role || ''
+            },
+            target_user: log.target_user || null,
+            extra: log.extra || {},
+            timestamp: log.timestamp || null
+        }))
+
+        const totalPages = Math.ceil(total / limit)
+
+        return sendSuccessResponse(response, 200, 'Audit logs retrieved successfully', {
+            items,
+            total,
+            page,
+            limit,
+            has_next_page: page < totalPages,
+            has_previous_page: page > 1
+        })
     }
 }

@@ -51,6 +51,7 @@ router
     }).prefix('/lockers')
 
       router.get('/access-logs/:lockerSerialNumber', [LogsController, 'getAccessLogs'])
+      router.get('/audit-logs/:lockerSerialNumber', [LogsController, 'getAuditLogs'])
   })
   .use(middleware.passportAuth())
   .prefix('/api')
