@@ -49,6 +49,8 @@ router
       router.delete(':lockerId/schedules/delete', [ScheduleController, 'deleteSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
     }).prefix('/lockers')
+
+      router.get('/access-logs/:lockerSerialNumber', [LogsController, 'getAccessLogs'])
   })
   .use(middleware.passportAuth())
   .prefix('/api')
@@ -60,7 +62,7 @@ router
       router.get('schedules/:serialNumber', [LockerConfigController, 'getLockerSchedules'])
       router.put(':serialNumber/:compartmentNumber/:status', [LockerConfigController, 'updateCompartmentStatus'])
       .use(middleware.validateNumericParams(['compartmentNumber']))
-      router.post('store-log', [LogsController, 'storeLogs'])
+      router.post('store-log', [LogsController, 'storeAccessLogs'])
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
 

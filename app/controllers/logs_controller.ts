@@ -8,6 +8,9 @@ import Locker from '#models/locker'
 import LockerUserRole from '#models/locker_user_role'
 import BackgroundLogger from '#services/background_logger'
 import { SlackService } from '#services/slack_service'
+import { getDb } from '#services/mongo_service'
+import { IsAdminService } from '#services/is_admin_service'
+import { validatePagination } from '../helpers/validate_query_params.js'
 
 const supabaseUrl = env.get('SUPABASE_URL')!
 const supabaseKey = env.get('SUPABASE_API_KEY')!
@@ -67,7 +70,7 @@ export default class LogsController {
                         photo_path: path,
                         action,
                         source,
-                        timestamp: new Date().toISOString(),
+                        timestamp: new Date(),
                     }
                 })
             )
@@ -105,6 +108,123 @@ export default class LogsController {
         } catch (error) {
             await new SlackService().sendExceptionMessage(error, 500)
             return ''
+        }
+    }
+
+    async getAccessLogs(ctx: HttpContext) {
+        const { request, response, passportUser } = ctx
+        const pagination = await validatePagination(ctx)
+        if (!pagination) return
+
+        const serialNumber = String(request.param('lockerSerialNumber'))
+
+        const locker = await Locker.query()
+            .where('serial_number', serialNumber)
+            .preload('area', (areaQuery) => {
+                areaQuery.preload('organization')
+            })
+            .first()
+        
+        if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
+
+        const isAdmin = await IsAdminService.isAdmin(locker.id, passportUser.id, ['admin', 'super_admin', 'user'])
+        if (!isAdmin) return sendErrorResponse(response, 403, 'You do not have access to this locker')
+
+        const { page, limit } = pagination
+
+        const performerEmail = request.input('performerEmail')  
+        const action = request.input('action')
+        const compartment = request.input('compartment') ? Number(request.input('compartment')) : undefined
+        const dateFrom = request.input('dateFrom')
+        const dateTo = request.input('dateTo')
+
+        const validActions = ['opening', 'closing', 'failed_attempt']
+        if (action && !validActions.includes(action)) {
+            return sendErrorResponse(response, 400, `Invalid action. Must be one of: ${validActions.join(', ')}`)
+        }
+
+        if (dateFrom && !/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
+            return sendErrorResponse(response, 400, 'Invalid date_from format. Use YYYY-MM-DD')
+        }
+        if (dateTo && !/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+            return sendErrorResponse(response, 400, 'Invalid date_to format. Use YYYY-MM-DD')
+        }
+
+        try {
+            const db = await getDb('lockity_db')
+            const collection = db.collection('lockers_logs')
+
+            const mongoFilters: any = {
+                "locker.locker_serial_number": serialNumber
+            }
+
+            if (performerEmail) {
+                mongoFilters["performed_by.email"] = performerEmail
+            }
+
+            if (action) {
+                mongoFilters.action = action
+            }
+
+            if (compartment) {
+                mongoFilters["locker.manipulated_compartment"] = compartment
+            }
+
+            if (dateFrom || dateTo) {
+                mongoFilters.timestamp = {}
+                
+                if (dateFrom) {
+                    mongoFilters.timestamp.$gte = new Date(`${dateFrom}T00:00:00.000Z`)
+                }
+                
+                if (dateTo) {
+                    mongoFilters.timestamp.$lte = new Date(`${dateTo}T23:59:59.999Z`)
+                }
+            }
+
+            const total = await collection.countDocuments(mongoFilters)
+
+            const logs = await collection
+                .find(mongoFilters)
+                .sort({ timestamp: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .toArray()
+
+            const items = logs.map((log: any) => ({
+                id: log._id,
+                locker: {
+                    serial_number: log.locker?.locker_serial_number || '',
+                    number_in_the_area: log.locker?.number_in_area || 0,
+                    manipulated_compartment: log.locker?.manipulated_compartment || 0,
+                    organization_name: log.locker?.organization_name || '',
+                    area_name: log.locker?.area_name || ''
+                },
+                performed_by: {
+                    full_name: log.performed_by?.full_name || '',
+                    email: log.performed_by?.email || '',
+                    role: log.performed_by?.role || ''
+                },
+                source: log.source || '',
+                photo_path: log.photo_path || null,
+                timestamp: log.timestamp || null,
+                action: log.action || '',
+            }))
+
+            const totalPages = Math.ceil(total / limit)
+
+            return sendSuccessResponse(response, 200, 'Access logs retrieved successfully', {
+                items,
+                total,
+                page,
+                limit,
+                has_next_page: page < totalPages,
+                has_previous_page: page > 1
+            })
+
+        } catch (error) {
+            await new SlackService().sendExceptionMessage(error, 500)
+            return sendErrorResponse(response, 500, 'Error retrieving logs')
         }
     }
 }
