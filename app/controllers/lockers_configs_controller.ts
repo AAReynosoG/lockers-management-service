@@ -150,6 +150,7 @@ export default class LockersConfigsController {
     const serialNumber = String(request.param('serialNumber'))
     const status = String(request.param('status'))
     const compartmentNumber = Number(request.param('compartmentNumber'))
+    const imageBase64 = request.input('image_base_64')
 
     const locker = await Locker.query()
       .where('serial_number', serialNumber)
@@ -174,9 +175,11 @@ export default class LockersConfigsController {
       return sendErrorResponse(response, 400, 'Invalid compartment status')
     }
 
-    compartment.status = status as typeof allowedStatuses[number]
-    await compartment.save()
-
+    if (status != 'error') {
+      compartment.status = status as typeof allowedStatuses[number]
+      await compartment.save()
+    }
+    
     try {
       const allDeviceTokens: string[] = []
       
@@ -192,7 +195,7 @@ export default class LockersConfigsController {
         const statusMessages = {
           open: 'was opened',
           closed: 'was closed', 
-          error: 'has an error',
+          error: 'had a failed opening attempt',
           maintenance: 'is under maintenance'
         }
 
@@ -211,7 +214,8 @@ export default class LockersConfigsController {
           allDeviceTokens,
           title,
           body,
-          notificationData
+          notificationData,
+          imageBase64
         )
       }
     } catch (notificationError) {
