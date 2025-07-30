@@ -4,6 +4,9 @@ import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Compartment from '#models/compartment'
 import LockerTopic from '#models/locker_topic'
+import { BackgroundNotificationService } from '#services/background_notification_service'
+import { SlackService } from '#services/slack_service'
+
 
 export default class LockersConfigsController {
   async getLockerConfig({ request, response }: HttpContext) {
@@ -134,13 +137,21 @@ export default class LockersConfigsController {
     const status = String(request.param('status'))
     const compartmentNumber = Number(request.param('compartmentNumber'))
 
-    const locker = await Locker.findBy('serial_number', serialNumber)
+    const locker = await Locker.query()
+      .where('serial_number', serialNumber)
+      .preload('accessPermissions', (apQuery) => {
+        apQuery.preload('user', (userQuery) => {
+          userQuery.preload('deviceTokens')
+        })
+      })
+      .first()
+
     if(!locker) return sendErrorResponse(response, 404, 'Locker not found')
 
     const compartment = await Compartment.query()
-    .where('locker_id', locker.id)
-    .andWhere('compartment_number', compartmentNumber)
-    .first()
+      .where('locker_id', locker.id)
+      .andWhere('compartment_number', compartmentNumber)
+      .first()
 
     if(!compartment) return sendErrorResponse(response, 404, 'Compartment not found')
 
@@ -151,6 +162,48 @@ export default class LockersConfigsController {
 
     compartment.status = status as typeof allowedStatuses[number]
     await compartment.save()
+
+    try {
+      const allDeviceTokens: string[] = []
+      
+      locker.accessPermissions.forEach(permission => {
+        permission.user.deviceTokens.forEach(deviceToken => {
+          allDeviceTokens.push(deviceToken.deviceToken)
+        })
+      })
+
+      if (allDeviceTokens.length > 0) {
+        const notificationService = new BackgroundNotificationService()
+        
+        const statusMessages = {
+          open: 'was opened',
+          closed: 'was closed', 
+          error: 'has an error',
+          maintenance: 'is under maintenance'
+        }
+
+        const title = 'Locker Status Update'
+        const body = `Hey! Compartment ${compartmentNumber} of locker ${serialNumber} ${statusMessages[status as keyof typeof statusMessages]}`
+        
+        const notificationData = {
+          lockerId: locker.id.toString(),
+          serialNumber: serialNumber,
+          compartmentNumber: compartmentNumber.toString(),
+          status: status,
+          type: 'compartment_status_update'
+        }
+
+        await notificationService.sendToMultipleDevices(
+          allDeviceTokens,
+          title,
+          body,
+          notificationData
+        )
+      }
+    } catch (notificationError) {
+      await new SlackService().sendExceptionMessage(notificationError, 500)
+    }
+
     return sendSuccessResponse(response, 200, 'Compartment status updated successfully.')
   }
 }

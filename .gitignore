@@ -10,6 +10,8 @@ tmp
 .env.development.local
 config/passport/*.key
 config/mysql-certs/*.pem
+config/mysql-slave-certs/*.pem
+config/fcm
 config/database.ts
 config/mongo-certs
 

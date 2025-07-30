@@ -57,6 +57,7 @@
     "@vinejs/vine": "^3.0.1",
     "axios": "^1.10.0",
     "edge.js": "^6.2.1",
+    "firebase-admin": "^13.4.0",
     "handlebars": "^4.7.8",
     "jose": "^6.0.11",
     "luxon": "^3.6.1",
