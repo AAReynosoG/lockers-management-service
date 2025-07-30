@@ -7,6 +7,7 @@ const LockerConfigController = () => import('#controllers/lockers_configs_contro
 const ScheduleController = () => import('#controllers/schedules_controller')
 const AreaController = () => import('#controllers/areas_controller')
 const LogsController = () => import('#controllers/logs_controller')
+const DeviceController = () => import('#controllers/devices_controller')
 
 router
   .group(() => {
@@ -50,6 +51,11 @@ router
       router.delete(':lockerId/schedules/delete', [ScheduleController, 'deleteSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
     }).prefix('/lockers')
+
+    router.group(() => { 
+      router.post('register', [DeviceController, 'storeDeviceToken'])
+      router.delete('unregister', [DeviceController, 'destroyDeviceToken'])
+    }).prefix('/notifications')
 
     router.get('/access-logs/:lockerSerialNumber', [LogsController, 'getAccessLogs'])
     router.get('/audit-logs/:lockerSerialNumber', [LogsController, 'getAuditLogs'])
