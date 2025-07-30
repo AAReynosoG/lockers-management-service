@@ -15,36 +15,50 @@ export default class LockersConfigsController {
     const locker = await Locker
       .query()
       .where('serial_number', serialNumnber)
-      .preload('lockerTopics')
-      .preload('accessPermissions', (apQuery) => {
-        apQuery
-          .preload('user')
-          .preload('accessPermissionCompartments', (apcQuery) => {
-          apcQuery.preload('compartment')
-        })
-      })
       .first()
 
     if(!locker) {
       return sendErrorResponse(response, 404, 'Locker not found')
     }
 
+    const lockerWithRelations = await Locker
+      .query()
+      .where('id', locker.id)
+      .preload('lockerTopics')
+      .preload('accessPermissions', (apQuery) => {
+        apQuery
+          .preload('user', (userQuery) => {
+            userQuery.preload('lockerUserRoles', (roleQuery) => {
+              roleQuery.where('locker_id', locker.id)
+            })
+          })
+          .preload('accessPermissionCompartments', (apcQuery) => {
+          apcQuery.preload('compartment')
+        })
+      })
+      .firstOrFail()
+
     const topicsObject: Record<string, string> = {}
-    locker.lockerTopics.forEach((topic) => {
+    lockerWithRelations.lockerTopics.forEach((topic) => {
       const parts = topic.topic.split('/')
       const key = parts[parts.length - 1]
       topicsObject[key] = topic.topic
     })
 
-    const users = locker.accessPermissions.map((ap) => {
+    const users = lockerWithRelations.accessPermissions.map((ap) => {
       const compartments = ap.accessPermissionCompartments.map((apc) => {
         return apc.compartment.compartmentNumber.toString()
       })
 
+      const userRoleForThisLocker = ap.user.lockerUserRoles.find(
+        role => role.lockerId === locker.id
+      )
+
       return {
         id_usuario: ap.userId.toString(),
         nombre_usuario: `${ap.user.name} ${ap.user.lastName}`,
-        cajones_usuario: [...new Set(compartments)]
+        cajones_usuario: [...new Set(compartments)],
+        rol: userRoleForThisLocker?.role || null
       }
     })
 
