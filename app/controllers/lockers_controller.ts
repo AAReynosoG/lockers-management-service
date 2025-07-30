@@ -674,4 +674,31 @@ export default class LockersController {
     )
   
    }
+
+   async getCompartmentStatus({request, response, passportUser}: HttpContext) {
+    const serialNumber = request.param('serialNumber')
+    const compartmentNumber = Number(request.param('compartmentNumber'))
+
+    const lockerBelongsToUser = await LockerUserRole.query()
+      .where('user_id', passportUser.id)
+      .whereHas('locker', (lockerQuery) => {
+        lockerQuery.where('serial_number', serialNumber)
+      })
+      .first()
+
+    if (!lockerBelongsToUser) {
+      return sendErrorResponse(response, 403, 'You do not have access to this locker')
+    }
+
+    const compartment = await Compartment.query()
+      .where('locker_id', lockerBelongsToUser.lockerId)
+      .where('compartment_number', compartmentNumber)
+      .first()
+
+    if (!compartment) {
+      return sendErrorResponse(response, 404, 'Compartment not found')
+    }
+
+    return sendSuccessResponse(response, 200, compartment.status)
+   }
 }

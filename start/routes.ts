@@ -7,7 +7,6 @@ const LockerConfigController = () => import('#controllers/lockers_configs_contro
 const ScheduleController = () => import('#controllers/schedules_controller')
 const AreaController = () => import('#controllers/areas_controller')
 const LogsController = () => import('#controllers/logs_controller')
-const MongosController = () => import('#controllers/mongos_controller')
 
 router
   .group(() => {
@@ -39,6 +38,8 @@ router
       router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
       router.get(':areaId', [LockerController, 'getAreaLockers'])
       .use(middleware.validateNumericParams(['areaId']))
+      router.get(':serialNumber/:compartmentNumber', [LockerController, 'getCompartmentStatus'])
+      .use(middleware.validateNumericParams(['compartmentNumber']))
 
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
       .use(middleware.validateNumericParams(['lockerId']))
@@ -50,8 +51,8 @@ router
       .use(middleware.validateNumericParams(['lockerId']))
     }).prefix('/lockers')
 
-      router.get('/access-logs/:lockerSerialNumber', [LogsController, 'getAccessLogs'])
-      router.get('/audit-logs/:lockerSerialNumber', [LogsController, 'getAuditLogs'])
+    router.get('/access-logs/:lockerSerialNumber', [LogsController, 'getAccessLogs'])
+    router.get('/audit-logs/:lockerSerialNumber', [LogsController, 'getAuditLogs'])
   })
   .use(middleware.passportAuth())
   .prefix('/api')
@@ -67,4 +68,5 @@ router
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
 
-  router.post('/test/insert', [MongosController, 'insertTestData'])
+
+  
