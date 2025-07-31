@@ -6,11 +6,11 @@ import { storeLogValidator } from '#validators/log'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Locker from '#models/locker'
 import LockerUserRole from '#models/locker_user_role'
-import BackgroundLogger from '#services/background_logger'
 import { SlackService } from '#services/slack_service'
 import { getDb } from '#services/mongo_service'
 import { IsAdminService } from '#services/is_admin_service'
 import { validatePagination } from '../helpers/validate_query_params.js'
+import UnifiedBackgroundProcessor from '#services/unified_background_processor_service'
 
 const supabaseUrl = env.get('SUPABASE_URL')!
 const supabaseKey = env.get('SUPABASE_API_KEY')!
@@ -79,7 +79,26 @@ export default class LogsController {
             .filter(result => result.status === 'fulfilled')
             .map(result => (result as PromiseFulfilledResult<any>).value)
 
-            BackgroundLogger.addLogs(successful, 'lockers_logs')
+            const logsBySerial = new Map<string, any[]>()
+            successful.forEach(log => {
+                const serialNumber = log.locker?.locker_serial_number
+                if (serialNumber) {
+                    if (!logsBySerial.has(serialNumber)) {
+                        logsBySerial.set(serialNumber, [])
+                    }
+                    logsBySerial.get(serialNumber)!.push(log)
+                }
+            })
+
+            for (const [serialNumber, serializLogs] of logsBySerial) {
+                UnifiedBackgroundProcessor.addLogs(
+                    serializLogs, 
+                    'lockers_logs', 
+                    true,
+                    true, 
+                    serialNumber
+                )
+            }
 
             return sendSuccessResponse(response, 201, 'Logs processed', {
                 total: logs.length,

@@ -4,9 +4,6 @@ import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Compartment from '#models/compartment'
 import LockerTopic from '#models/locker_topic'
-import { BackgroundNotificationService } from '#services/background_notification_service'
-import { SlackService } from '#services/slack_service'
-
 
 export default class LockersConfigsController {
   async getLockerConfig({ request, response }: HttpContext) {
@@ -150,7 +147,6 @@ export default class LockersConfigsController {
     const serialNumber = String(request.param('serialNumber'))
     const status = String(request.param('status'))
     const compartmentNumber = Number(request.param('compartmentNumber'))
-    const imageBase64 = request.input('image_base_64')
 
     const locker = await Locker.query()
       .where('serial_number', serialNumber)
@@ -180,48 +176,6 @@ export default class LockersConfigsController {
       await compartment.save()
     }
     
-    try {
-      const allDeviceTokens: string[] = []
-      
-      locker.accessPermissions.forEach(permission => {
-        permission.user.deviceTokens.forEach(deviceToken => {
-          allDeviceTokens.push(deviceToken.deviceToken)
-        })
-      })
-
-      if (allDeviceTokens.length > 0) {
-        const notificationService = new BackgroundNotificationService()
-        
-        const statusMessages = {
-          open: 'was opened',
-          closed: 'was closed', 
-          error: 'had a failed opening attempt',
-          maintenance: 'is under maintenance'
-        }
-
-        const title = 'Locker Status Update'
-        const body = `Hey! Compartment ${compartmentNumber} of locker ${serialNumber} ${statusMessages[status as keyof typeof statusMessages]}`
-        
-        const notificationData = {
-          lockerId: locker.id.toString(),
-          serialNumber: serialNumber,
-          compartmentNumber: compartmentNumber.toString(),
-          status: status,
-          type: 'compartment_status_update'
-        }
-
-        await notificationService.sendToMultipleDevices(
-          allDeviceTokens,
-          title,
-          body,
-          notificationData,
-          imageBase64
-        )
-      }
-    } catch (notificationError) {
-      await new SlackService().sendExceptionMessage(notificationError, 500)
-    }
-
     return sendSuccessResponse(response, 200, 'Compartment status updated successfully.')
   }
 }
