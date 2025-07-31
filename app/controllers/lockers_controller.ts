@@ -527,6 +527,10 @@ export default class LockersController {
 
     if(userId === passportUser.id) return sendErrorResponse(response, 400, 'You cannot remove your own access to a compartment budy!!!')
 
+    const user = await User.find(userId)
+
+    if (!user) return sendErrorResponse(response, 404, 'User not found')
+
     const locker = await Locker.find(lockerId)
     if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
 
@@ -546,6 +550,8 @@ export default class LockersController {
       .first()
 
     if (!lockerUserRole) return sendErrorResponse(response, 404, 'It seems that the user does not have access to this locker')
+
+    const targetUserRole = lockerUserRole.role
 
     if (deleteAllAccess) {
       const allCompartmentAccess = await AccessPermissionCompartment.query()
@@ -578,6 +584,43 @@ export default class LockersController {
 
       await accessPermissionCompartment.delete()
     }
+
+    const passportUserRole = await LockerUserRole.query()
+      .where('lockerId', locker.id)
+      .where('userId', passportUser.id)
+      .first()
+
+    const singleCompartmentAccessRemovalMessage = `User ${passportUser.name} ${passportUser.lastName} (${passportUser.email}) 
+      removed access to compartment ${compartmentNumber} of locker ${locker.lockerNumber} 
+      in area ${locker.area?.name || 'Unknown Area'} for: ${user.name} ${user.lastName} (${user.email})`
+
+    const fullLockerAccessRemovalMessage = `User ${passportUser.name} ${passportUser.lastName} (${passportUser.email}) 
+      removed all ${user.name} ${user.lastName} (${user.email})'s access to the locker ${locker.lockerNumber} 
+      in area ${locker.area?.name || 'Unknown Area'}`
+    
+    const data = {
+      description: deleteAllAccess ? fullLockerAccessRemovalMessage : singleCompartmentAccessRemovalMessage,
+      locker: locker ? {
+        locker_serial_number: locker.serialNumber,
+        manipulated_compartment: compartmentNumber,
+        number_in_area: locker.lockerNumber,
+        area_name: locker.area.name,
+        organization_name: locker.area.organization.name
+      } : {},
+      performed_by: {
+        full_name: `${passportUser.name} ${passportUser.lastName} ${passportUser.secondLastName}`,
+        email: passportUser.email,
+        role: passportUserRole ? passportUserRole.role : 'unknown role'
+      },
+      target_user: {
+        full_name: `${user.name} ${user.lastName} ${user.secondLastName}`,
+        email: user.email,
+        role: targetUserRole
+      },
+      timestamp: new Date(),
+    }
+
+    BackgroundLogger.addLogs(data, 'audit_logs', false)
 
     return sendSuccessResponse(response, 200, 'User access to compartment removed successfully')
   }
