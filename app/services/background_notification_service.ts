@@ -1,6 +1,7 @@
 import admin from 'firebase-admin'
 import { readFileSync } from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 import { SlackService } from '#services/slack_service'
 import { createClient } from '@supabase/supabase-js'
 import env from '#start/env'
@@ -10,28 +11,42 @@ const supabaseUrl = env.get('SUPABASE_URL')!
 const supabaseKey = env.get('SUPABASE_API_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 export class BackgroundNotificationService {
   private static isInitialized = false
-
+  private static initializationPromise: Promise<void> | null = null
+  
   constructor() {
-    this.initializeFirebase()
+
   }
 
-  private async initializeFirebase() {
-    if (!BackgroundNotificationService.isInitialized) {
+  private static async initializeFirebase() {
+    if (this.isInitialized) {
+      return
+    }
+
+    if (this.initializationPromise) {
+      return this.initializationPromise
+    }
+
+    this.initializationPromise = (async () => {
       try {
-        const serviceAccountPath = path.resolve('../../config/fcm/lockity-7d75a-firebase-adminsdk-fbsvc-e090882ea5.json')
+        const serviceAccountPath = path.join(__dirname, '../../config/fcm/lockity-7d75a-firebase-adminsdk-fbsvc-e090882ea5.json')        
         const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'))
 
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         })
 
-        BackgroundNotificationService.isInitialized = true
+        this.isInitialized = true
       } catch (error) {
         await new SlackService().sendExceptionMessage(error, 500)
       }
-    }
+    })()
+
+    return this.initializationPromise
   }
 
   private async uploadTemporaryImage(imageBase64: string, serialNumber: string): Promise<string | null> {
@@ -84,6 +99,9 @@ export class BackgroundNotificationService {
     data?: Record<string, string>,
     imageBase64?: string
   ) {
+
+    await BackgroundNotificationService.initializeFirebase()
+
     if (deviceTokens.length === 0) {
       throw new Error('No device tokens provided')
     }
@@ -144,6 +162,9 @@ export class BackgroundNotificationService {
     body: string,
     data?: Record<string, string>
   ) {
+
+    await BackgroundNotificationService.initializeFirebase()
+
     const message = {
       notification: {
         title,
@@ -162,6 +183,9 @@ export class BackgroundNotificationService {
   }
 
   async sendToUserDevices(userId: number, title: string, body: string, data?: Record<string, string>) {
+    
+    await BackgroundNotificationService.initializeFirebase()
+    
     const { default: DeviceToken } = await import('#models/device_token')
     
     const userTokens = await DeviceToken.query()
