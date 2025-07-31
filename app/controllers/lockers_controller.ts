@@ -310,6 +310,8 @@ export default class LockersController {
         manipulated_compartment: compartmentNumber,
         number_in_area: locker.lockerNumber,
         area_name: locker.area.name,
+        area_id: locker.areaId,
+        organization_id: locker.area.organizationId,
         organization_name: locker.area.organization.name
       } : {},
       performed_by: {
@@ -613,6 +615,8 @@ export default class LockersController {
         manipulated_compartment: compartmentNumber,
         number_in_area: locker.lockerNumber,
         area_name: locker.area.name,
+        area_id: locker.areaId,
+        organization_id: locker.area.organizationId,
         organization_name: locker.area.organization.name
       } : {},
       performed_by: {

@@ -64,7 +64,9 @@ export default class LogsController {
                             locker_serial_number: locker.serialNumber,
                             manipulated_compartment: compartment_number,
                             number_in_area: locker.lockerNumber,
+                            area_id: locker.areaId,
                             area_name: locker.area.name,
+                            organization_id: locker.area.organizationId,
                             organization_name: locker.area.organization.name
                         } : {},
                         photo_path: path,
