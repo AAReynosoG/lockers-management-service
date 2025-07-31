@@ -1,7 +1,7 @@
 import DeviceToken from '#models/device_token'
 import { deviceTokenValidator } from '#validators/device_token'
 import type { HttpContext } from '@adonisjs/core/http'
-import { sendSuccessResponse } from '../helpers/response.js'
+import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 
 export default class DevicesController {
     async storeDeviceToken({ request, response, passportUser }: HttpContext) {
@@ -16,11 +16,14 @@ export default class DevicesController {
             return sendSuccessResponse(response, 409, 'Device token already registered')
         }
 
+        if(!payload.device_type) { 
+            return sendErrorResponse(response, 400, 'Device type is required')
+        }
 
         await DeviceToken.create({
             userId: passportUser.id,
             deviceToken: payload.device_token,
-            deviceType: 'mobile',
+            deviceType: payload.device_type,
             platform: 'linux'
         })
 
