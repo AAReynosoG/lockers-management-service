@@ -28,7 +28,7 @@ router
     router.group(() => {
       router.get('/:lockerId/compartments', [LockerController, 'getLockerCompartments'])
       .use(middleware.validateNumericParams(['lockerId']))
-      router.get('', [LockerController, 'getLockers'])
+      router.get(':role', [LockerController, 'getLockers'])
       router.put('', [LockerController, 'moveLockerToArea'])
       router.put(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
       .use(middleware.validateNumericParams(['lockerId', 'compartmentNumber']))

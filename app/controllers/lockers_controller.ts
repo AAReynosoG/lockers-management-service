@@ -123,10 +123,12 @@ export default class LockersController {
     const { page, limit } = pagination
     const organizationId = Number(request.input('organizationId'))
     const showSchedules = request.input('showSchedules', 'false') === 'true'
+    const role = request.param('role')
 
     const lockersQuery = await Locker.query()
       .whereHas('lockerUserRoles', (lurQuery) => {
         lurQuery.where('user_id', passportUser.id)
+        lurQuery.where('role', role)
       })
       .whereHas('area', (areaQuery) => {
         areaQuery.whereHas('organization', (orgQuery) => {
@@ -531,7 +533,13 @@ export default class LockersController {
 
     if (!user) return sendErrorResponse(response, 404, 'User not found')
 
-    const locker = await Locker.find(lockerId)
+    const locker = await Locker.query()
+    .where('id', lockerId)
+    .preload('area', (areaQuery) => {
+      areaQuery.preload('organization')
+    })
+    .first()
+
     if (!locker) return sendErrorResponse(response, 404, 'Locker not found')
 
     const isSuperAdmin = await IsAdminService.isAdmin(lockerId, passportUser.id, ['super_admin'])
