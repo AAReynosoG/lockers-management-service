@@ -685,7 +685,7 @@ export default class LockersController {
 
     const { page, limit} = pagination
     const areaId = Number(request.param('areaId'))
-    const role = request.input('role')
+    const role = request.param('role')
 
     const area = await Area.find(areaId)
     if (!area) {
