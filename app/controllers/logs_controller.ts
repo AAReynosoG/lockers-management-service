@@ -316,4 +316,101 @@ export default class LogsController {
             has_previous_page: page > 1
         })
     }
+
+    async getLockerActivities(ctx: HttpContext) {
+        const { request, response, passportUser } = ctx
+        const pagination = await validatePagination(ctx)
+        if (!pagination) return
+
+        const { page, limit } = pagination
+        const status = request.input('status', 'success')
+
+        if (!['success', 'failure'].includes(status)) {
+            return sendErrorResponse(response, 400, 'Invalid status parameter. Must be "success" or "failure".')
+        }
+
+        try {
+            const db = await getDb('lockity_db')
+            const collection = db.collection('lockers_logs')
+
+            let actionFilter: any
+            if (status === 'success') {
+            actionFilter = { action: { $in: ['opening', 'closing'] } }
+            } else {
+            actionFilter = { action: 'failed_attempt' }
+            }
+
+            const userLockerRoles = await LockerUserRole.query()
+            .where('user_id', passportUser.id)
+            .andWhere('role', 'admin')
+            .preload('locker')
+
+            if (userLockerRoles.length === 0) {
+            return sendSuccessResponse(response, 200, 'Locker activities retrieved successfully', {
+                items: [],
+                total: 0,
+                page: page,
+                limit: limit,
+                has_next_page: false,
+                has_previous_page: false
+            })
+            }
+
+            const userSerialNumbers = userLockerRoles.map(role => role.locker.serialNumber)
+
+            const mongoFilters = {
+            ...actionFilter,
+            "locker.locker_serial_number": { $in: userSerialNumbers }
+            }
+
+            const total = await collection.countDocuments(mongoFilters)
+
+            const logs = await collection
+            .find(mongoFilters)
+            .sort({ timestamp: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .toArray()
+
+            const items = logs.map((log: any) => {
+            const dateTime = log.timestamp 
+                ? new Date(log.timestamp).toLocaleString('es-MX', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }).replace(',', '')
+                : null
+
+            return {
+                locker_id: log.locker?.locker_id || null,
+                locker_serial_number: log.locker?.locker_serial_number || '',
+                compartment_number: log.locker?.manipulated_compartment || null,
+                organization: log.locker?.organization_name || '',
+                area: log.locker?.area_name || '',
+                user: log.performed_by?.full_name || '',
+                email: log.performed_by?.email || '',
+                status: status,
+                date_time: dateTime
+            }
+            })
+
+            const totalPages = Math.ceil(total / limit)
+
+            return sendSuccessResponse(response, 200, 'Locker activities retrieved successfully', {
+            items,
+            total,
+            page,
+            limit,
+            has_next_page: page < totalPages,
+            has_previous_page: page > 1
+            })
+
+        } catch (error) {
+            await new SlackService().sendExceptionMessage(error, 500)
+            return sendErrorResponse(response, 500, 'Error retrieving locker activities')
+        }
+    }
 }
