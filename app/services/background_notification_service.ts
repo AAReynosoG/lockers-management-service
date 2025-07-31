@@ -33,7 +33,7 @@ export class BackgroundNotificationService {
 
     this.initializationPromise = (async () => {
       try {
-        const serviceAccountPath = path.join(__dirname, '../../config/fcm/lockity-7d75a-firebase-adminsdk-fbsvc-e090882ea5.json')        
+        const serviceAccountPath = path.join(__dirname, '../../config/fcm/firebase-sdk.json')        
         const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'))
 
         admin.initializeApp({
