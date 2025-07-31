@@ -306,6 +306,7 @@ export default class LockersController {
       was assigned to compartment ${compartmentNumber} of locker ${locker.lockerNumber} 
       in area ${locker.area?.name || 'Unknown Area'} by ${passportUser.name} ${passportUser.lastName} (${passportUser.email})`,
       locker: locker ? {
+        locker_id: locker.id,
         locker_serial_number: locker.serialNumber,
         manipulated_compartment: compartmentNumber,
         number_in_area: locker.lockerNumber,
@@ -611,6 +612,7 @@ export default class LockersController {
     const data = {
       description: deleteAllAccess ? fullLockerAccessRemovalMessage : singleCompartmentAccessRemovalMessage,
       locker: locker ? {
+        locker_id: locker.id,
         locker_serial_number: locker.serialNumber,
         manipulated_compartment: compartmentNumber,
         number_in_area: locker.lockerNumber,

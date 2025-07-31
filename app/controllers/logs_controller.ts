@@ -61,6 +61,7 @@ export default class LogsController {
                             role: userRole.role
                         } : {},
                         locker: locker ? {
+                            locker_id: locker.id,
                             locker_serial_number: locker.serialNumber,
                             manipulated_compartment: compartment_number,
                             number_in_area: locker.lockerNumber,
