@@ -699,7 +699,7 @@ export default class LockersController {
           .whereHas('lockerUserRoles', (lurQuery) => {
             lurQuery
               .where('user_id', passportUser.id)
-              .where('role', role)
+              .andWhere('role', role)
           })
           .orderBy('id', 'asc')
       })
