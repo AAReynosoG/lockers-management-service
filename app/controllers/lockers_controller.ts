@@ -685,30 +685,47 @@ export default class LockersController {
 
     const { page, limit} = pagination
     const areaId = Number(request.param('areaId'))
+    const role = request.input('role')
 
-    const lockersQuery = await Locker.query()
-      .where('area_id', areaId)
-      .whereHas('lockerUserRoles', (lurQuery) => {
-        lurQuery
-          .where('user_id', passportUser.id)
-          .whereIn('role', ['admin', 'super_admin'])
+    const area = await Area.find(areaId)
+    if (!area) {
+      return sendErrorResponse(response, 404, 'Area not found')
+    }
+
+    const areaWithLockers = await Area.query()
+      .where('id', areaId)
+      .preload('lockers', (lockersQuery) => {
+        lockersQuery
+          .whereHas('lockerUserRoles', (lurQuery) => {
+            lurQuery
+              .where('user_id', passportUser.id)
+              .where('role', role)
+          })
+          .orderBy('id', 'asc')
       })
-      .preload('area', (areaQuery) => {
-        areaQuery.preload('organization')
-      })
-      .orderBy('id', 'asc')
-      .paginate(page, limit)
+      .preload('organization')
+      .first()
 
-    const queryResults = lockersQuery.toJSON()
+    if (!areaWithLockers) {
+      return sendErrorResponse(response, 404, 'Area not found')
+    }
 
-    const items = queryResults.data.map((locker) => ({
+    const totalLockers = areaWithLockers.lockers.length
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+    const paginatedLockers = areaWithLockers.lockers.slice(startIndex, endIndex)
+
+    const items = paginatedLockers.map((locker) => ({
       locker_id: locker.id,
       locker_serial_number: locker.serialNumber,
-      organization_id: locker.area?.organization?.id,
-      organization_name: locker.area?.organization?.name,
-      area_id: locker.area?.id,
-      area_name: locker.area?.name,
-    }));
+      locker_number: locker.lockerNumber,
+      organization_id: areaWithLockers.organization?.id,
+      organization_name: areaWithLockers.organization?.name,
+      area_id: areaWithLockers.id,
+      area_name: areaWithLockers.name,
+    }))
+
+    const totalPages = Math.ceil(totalLockers / limit)
 
     return sendSuccessResponse(
       response,
@@ -716,15 +733,15 @@ export default class LockersController {
       'Area lockers retrieved successfully',
       {
         items: items,
-        total: lockersQuery.total,
+        total: totalLockers,
         page: page,
         limit: limit,
-        has_next_page: lockersQuery.currentPage < lockersQuery.lastPage,
-        has_previous_page: lockersQuery.currentPage > 1,
+        total_pages: totalPages,
+        has_next_page: page < totalPages,
+        has_previous_page: page > 1,
       }
     )
-  
-   }
+  }
 
    async getCompartmentStatus({request, response, passportUser}: HttpContext) {
     const serialNumber = request.param('serialNumber')

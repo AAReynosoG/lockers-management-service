@@ -37,7 +37,7 @@ router
       router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
       .use(middleware.validateNumericParams(['lockerId', 'userId']))
       router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
-      router.get(':areaId', [LockerController, 'getAreaLockers'])
+      router.get(':areaId/:role', [LockerController, 'getAreaLockers'])
       .use(middleware.validateNumericParams(['areaId']))
       router.get(':serialNumber/:compartmentNumber', [LockerController, 'getCompartmentStatus'])
       .use(middleware.validateNumericParams(['compartmentNumber']))
