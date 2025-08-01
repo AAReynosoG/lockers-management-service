@@ -12,6 +12,7 @@ import { IsAdminService } from '#services/is_admin_service'
 import { validatePagination } from '../helpers/validate_query_params.js'
 import UnifiedBackgroundProcessor from '#services/unified_background_processor_service'
 import Area from '#models/area'
+import Organization from '#models/organization'
 
 const supabaseUrl = env.get('SUPABASE_URL')!
 const supabaseKey = env.get('SUPABASE_API_KEY')!
@@ -522,5 +523,118 @@ export default class LogsController {
             await new SlackService().sendExceptionMessage(error, 500)
             return sendErrorResponse(response, 500, 'Error retrieving area movements')
         }
+    }
+
+    async getOrganizationMovements({ request, response, passportUser }: HttpContext) {
+        const organizationId = Number(request.input('organizationId'))
+        const dateFrom = request.input('dateFrom')
+        const dateTo = request.input('dateTo')
+
+        const organization = await Organization.find(organizationId)
+        if (!organization) {
+            return sendErrorResponse(response, 404, 'Organization not found')
         }
+
+        const hasAccessToOrganization = await LockerUserRole.query()
+            .where('user_id', passportUser.id)
+            .whereIn('role', ['admin', 'super_admin'])
+            .whereHas('locker', (lockerQuery) => {
+            lockerQuery.whereHas('area', (areaQuery) => {
+                areaQuery.where('organization_id', organizationId)
+            })
+            })
+            .first()
+
+        if (!hasAccessToOrganization) {
+            return sendErrorResponse(response, 403, 'You do not have admin access to this organization')
+        }
+
+        const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+        const fromDate = dateFrom || today
+        const toDate = dateTo || today
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
+            return sendErrorResponse(response, 400, 'Invalid dateFrom format. Use YYYY-MM-DD')
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+            return sendErrorResponse(response, 400, 'Invalid dateTo format. Use YYYY-MM-DD')
+        }
+
+        try {
+            const organizationLockers = await Locker.query()
+            .whereHas('area', (areaQuery) => {
+                areaQuery.where('organization_id', organizationId)
+            })
+            .select('serial_number')
+
+            if (organizationLockers.length === 0) {
+            return sendSuccessResponse(response, 200, 'Movements retrieved successfully', {
+                items: []
+            })
+            }
+
+            const serialNumbers = organizationLockers.map(locker => locker.serialNumber)
+
+            const db = await getDb('lockity_db')
+            const collection = db.collection('lockers_logs')
+
+            const mongoFilters = {
+            "locker.locker_serial_number": { $in: serialNumbers },
+            "action": { $in: ['opening', 'closing', 'failed_attempt'] },
+            "timestamp": {
+                $gte: new Date(`${fromDate}T00:00:00.000Z`),
+                $lte: new Date(`${toDate}T23:59:59.999Z`)
+            }
+            }
+
+            const aggregationPipeline = [
+            {
+                $match: mongoFilters
+            },
+            {
+                $group: {
+                _id: {
+                    $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$timestamp"
+                    }
+                },
+                count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { "_id": 1 }
+            }
+            ]
+
+            const aggregationResults = await collection.aggregate(aggregationPipeline).toArray()
+
+            const movementsByDate = new Map()
+            aggregationResults.forEach(result => {
+            movementsByDate.set(result._id, result.count)
+            })
+
+            const items = []
+            const startDate = new Date(fromDate)
+            const endDate = new Date(toDate)
+
+            for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+            const dateString = currentDate.toISOString().split('T')[0]
+            const count = movementsByDate.get(dateString) || 0
+            
+            items.push({
+                date: dateString,
+                count: count
+            })
+            }
+
+            return sendSuccessResponse(response, 200, 'Movements retrieved successfully', {
+            items
+            })
+
+        } catch (error) {
+            await new SlackService().sendExceptionMessage(error, 500)
+            return sendErrorResponse(response, 500, 'Error retrieving organization movements')
+        }
+        } 
 }

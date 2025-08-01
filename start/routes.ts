@@ -28,6 +28,8 @@ router
       .use(middleware.validateNumericParams(['organizationId']))
       router.put(':areaId/areas', [AreaController, 'updateArea'])
       .use(middleware.validateNumericParams(['areaId']))
+      router.get(':organizationId/movements/chart', [LogsController, 'getOrganizationMovements'])
+      .use(middleware.validateNumericParams(['organizationId']))
     }).prefix('/organizations')
 
     router.group(() => {
