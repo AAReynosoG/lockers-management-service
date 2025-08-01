@@ -8,7 +8,7 @@ import { createPublicKey } from 'crypto'
 import { NextFn } from '@adonisjs/core/types/http'
 import db from '@adonisjs/lucid/services/db'
 import { sendErrorResponse } from '../helpers/response.js'
-import { JWTExpired } from 'jose/errors'
+import { JWSSignatureVerificationFailed, JWTClaimValidationFailed, JWTExpired } from 'jose/errors'
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -47,6 +47,14 @@ export default class PassportAuthMiddleware {
     } catch (error) {
       if(error instanceof JWTExpired) {
         return sendErrorResponse(ctx.response, 401, 'Token expired')
+      }
+
+      if(error instanceof JWTClaimValidationFailed) {
+        return sendErrorResponse(ctx.response, 401, 'Invalid token claims')
+      }
+
+      if(error instanceof JWSSignatureVerificationFailed) {
+        return sendErrorResponse(ctx.response, 401, 'Invalid token signature')
       }
 
       throw error
