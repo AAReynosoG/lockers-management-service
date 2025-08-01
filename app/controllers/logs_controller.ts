@@ -526,7 +526,7 @@ export default class LogsController {
     }
 
     async getOrganizationMovements({ request, response, passportUser }: HttpContext) {
-        const organizationId = Number(request.input('organizationId'))
+        const organizationId = Number(request.param('organizationId'))
         const dateFrom = request.input('dateFrom')
         const dateTo = request.input('dateTo')
 

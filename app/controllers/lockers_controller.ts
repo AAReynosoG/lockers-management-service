@@ -650,7 +650,7 @@ export default class LockersController {
       .whereHas('lockerUserRoles', (lurQuery) => {
         lurQuery
           .where('user_id', passportUser.id)
-          .whereIn('role', ['admin', 'super_admin'])
+          .whereIn('role', ['admin'])
       })
       .whereDoesntHave('schedules', () => {})
       .orderBy('id', 'asc')
