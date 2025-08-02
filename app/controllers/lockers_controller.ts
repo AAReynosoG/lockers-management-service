@@ -654,7 +654,7 @@ export default class LockersController {
     if (organizationId) {
       const hasAccessToOrganization = await LockerUserRole.query()
         .where('user_id', passportUser.id)
-        .whereIn('role', ['admin', 'super_admin'])
+        .andWhere('role', 'admin')
         .whereHas('locker', (lockerQuery) => {
           lockerQuery.whereHas('area', (areaQuery) => {
             areaQuery.where('organization_id', organizationId)
