@@ -640,19 +640,45 @@ export default class LockersController {
   }
 
   async lockersWithoutSchedules(ctx: HttpContext) {
-    const { response, passportUser } = ctx
+    const { request, response, passportUser } = ctx
     const pagination = await validatePagination(ctx)
     if (!pagination) return
 
     const { page, limit } = pagination
+    const organizationId = request.input('organizationId') ? Number(request.input('organizationId')) : null
+
+    if (organizationId !== null && (isNaN(organizationId) || organizationId <= 0)) {
+      return sendErrorResponse(response, 400, 'Invalid organizationId parameter. Must be a positive number.')
+    }
+
+    if (organizationId) {
+      const hasAccessToOrganization = await LockerUserRole.query()
+        .where('user_id', passportUser.id)
+        .whereIn('role', ['admin', 'super_admin'])
+        .whereHas('locker', (lockerQuery) => {
+          lockerQuery.whereHas('area', (areaQuery) => {
+            areaQuery.where('organization_id', organizationId)
+          })
+        })
+        .first()
+
+      if (!hasAccessToOrganization) {
+        return sendErrorResponse(response, 403, 'You do not have admin access to this organization')
+      }
+    }
 
     const lockersQuery = await Locker.query()
       .whereHas('lockerUserRoles', (lurQuery) => {
         lurQuery
           .where('user_id', passportUser.id)
-          .whereIn('role', ['admin'])
+          .andWhere('role', 'admin')
       })
       .whereDoesntHave('schedules', () => {})
+      .if(organizationId, (query) => {
+        query.whereHas('area', (areaQuery) => {
+          areaQuery.where('organization_id', organizationId!)
+        })
+      })
       .orderBy('id', 'asc')
       .preload('area', (areaQuery) => {
         areaQuery.preload('organization')

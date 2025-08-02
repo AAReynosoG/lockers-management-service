@@ -12,11 +12,6 @@ const DeviceController = () => import('#controllers/devices_controller')
 router
   .group(() => {
     router.group(() => {
-      router.get(':areaId/movements/chart', [LogsController, 'getAreaMovements'])
-      .use(middleware.validateNumericParams(['areaId']))
-    }).prefix('/areas')
-
-    router.group(() => {
       router.post('', [OrganizationController, 'createOrganizationAndArea'])
       router.get(':role', [OrganizationController, 'getOrganizations'])
       router.put(':organizationId', [OrganizationController, 'updateOrganization'])
