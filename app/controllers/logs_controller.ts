@@ -11,7 +11,6 @@ import { getDb } from '#services/mongo_service'
 import { IsAdminService } from '#services/is_admin_service'
 import { validatePagination } from '../helpers/validate_query_params.js'
 import UnifiedBackgroundProcessor from '#services/unified_background_processor_service'
-import Area from '#models/area'
 import Organization from '#models/organization'
 
 const supabaseUrl = env.get('SUPABASE_URL')!
@@ -326,9 +325,14 @@ export default class LogsController {
 
         const { page, limit } = pagination
         const status = request.input('status', 'success')
+        const organizationId = request.input('organizationId') ? Number(request.input('organizationId')) : null
 
         if (!['success', 'failure'].includes(status)) {
             return sendErrorResponse(response, 400, 'Invalid status parameter. Must be "success" or "failure".')
+        }
+
+        if (organizationId !== null && (isNaN(organizationId) || organizationId <= 0)) {
+            return sendErrorResponse(response, 400, 'Invalid organizationId parameter. Must be a positive number.')
         }
 
         try {
@@ -337,78 +341,108 @@ export default class LogsController {
 
             let actionFilter: any
             if (status === 'success') {
-            actionFilter = { action: { $in: ['opening', 'closing'] } }
+                actionFilter = { action: { $in: ['opening', 'closing'] } }
             } else {
-            actionFilter = { action: 'failed_attempt' }
+                actionFilter = { action: 'failed_attempt' }
             }
 
-            const userLockerRoles = await LockerUserRole.query()
-            .where('user_id', passportUser.id)
-            .andWhere('role', 'admin')
-            .preload('locker')
+            if (organizationId) {
+                const hasAccessToOrganization = await LockerUserRole.query()
+                    .where('user_id', passportUser.id)
+                    .whereIn('role', ['admin', 'super_admin'])
+                    .whereHas('locker', (lockerQuery) => {
+                        lockerQuery.whereHas('area', (areaQuery) => {
+                            areaQuery.where('organization_id', organizationId)
+                        })
+                    })
+                    .first()
+
+                if (!hasAccessToOrganization) {
+                    return sendErrorResponse(response, 403, 'You do not have admin access to this organization')
+                }
+            }
+
+            const userLockerRolesQuery = LockerUserRole.query()
+                .where('user_id', passportUser.id)
+                .whereIn('role', ['admin', 'super_admin'])
+                .preload('locker')
+
+            if (organizationId) {
+                userLockerRolesQuery.whereHas('locker', (lockerQuery) => {
+                    lockerQuery.whereHas('area', (areaQuery) => {
+                        areaQuery.where('organization_id', organizationId)
+                    })
+                })
+            }
+
+            const userLockerRoles = await userLockerRolesQuery
 
             if (userLockerRoles.length === 0) {
-            return sendSuccessResponse(response, 200, 'Locker activities retrieved successfully', {
-                items: [],
-                total: 0,
-                page: page,
-                limit: limit,
-                has_next_page: false,
-                has_previous_page: false
-            })
+                return sendSuccessResponse(response, 200, 'Locker activities retrieved successfully', {
+                    items: [],
+                    total: 0,
+                    page: page,
+                    limit: limit,
+                    has_next_page: false,
+                    has_previous_page: false
+                })
             }
 
             const userSerialNumbers = userLockerRoles.map(role => role.locker.serialNumber)
 
-            const mongoFilters = {
-            ...actionFilter,
-            "locker.locker_serial_number": { $in: userSerialNumbers }
+            const mongoFilters: any = {
+                ...actionFilter,
+                "locker.locker_serial_number": { $in: userSerialNumbers }
+            }
+
+            if (organizationId) {
+                mongoFilters["locker.organization_id"] = organizationId
             }
 
             const total = await collection.countDocuments(mongoFilters)
 
             const logs = await collection
-            .find(mongoFilters)
-            .sort({ timestamp: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .toArray()
+                .find(mongoFilters)
+                .sort({ timestamp: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .toArray()
 
             const items = logs.map((log: any) => {
-            const dateTime = log.timestamp 
-                ? new Date(log.timestamp).toLocaleString('es-MX', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                }).replace(',', '')
-                : null
+                const dateTime = log.timestamp 
+                    ? new Date(log.timestamp).toLocaleString('es-MX', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    }).replace(',', '')
+                    : null
 
-            return {
-                locker_id: log.locker?.locker_id || null,
-                locker_serial_number: log.locker?.locker_serial_number || '',
-                compartment_number: log.locker?.manipulated_compartment || null,
-                organization: log.locker?.organization_name || '',
-                area: log.locker?.area_name || '',
-                user: log.performed_by?.full_name || '',
-                email: log.performed_by?.email || '',
-                role: log.performed_by?.role || '',
-                status: status,
-                date_time: dateTime
-            }
+                return {
+                    locker_id: log.locker?.locker_id || null,
+                    locker_serial_number: log.locker?.locker_serial_number || '',
+                    compartment_number: log.locker?.manipulated_compartment || null,
+                    organization: log.locker?.organization_name || '',
+                    area: log.locker?.area_name || '',
+                    user: log.performed_by?.full_name || '',
+                    email: log.performed_by?.email || '',
+                    role: log.performed_by?.role || '',
+                    status: status,
+                    date_time: dateTime
+                }
             })
 
             const totalPages = Math.ceil(total / limit)
 
             return sendSuccessResponse(response, 200, 'Locker activities retrieved successfully', {
-            items,
-            total,
-            page,
-            limit,
-            has_next_page: page < totalPages,
-            has_previous_page: page > 1
+                items,
+                total,
+                page,
+                limit,
+                has_next_page: page < totalPages,
+                has_previous_page: page > 1
             })
 
         } catch (error) {
@@ -417,114 +451,6 @@ export default class LogsController {
         }
     }
 
-    async getAreaMovements({ request, response, passportUser }: HttpContext) {
-        const areaId = Number(request.input('areaId'))
-        const dateFrom = request.input('dateFrom')
-        const dateTo = request.input('dateTo')
-
-        const area = await Area.find(areaId)
-        if (!area) {
-            return sendErrorResponse(response, 404, 'Area not found')
-        }
-
-        const hasAccessToArea = await LockerUserRole.query()
-            .where('user_id', passportUser.id)
-            .andWhere('role', 'admin')
-            .whereHas('locker', (lockerQuery) => {
-            lockerQuery.where('area_id', areaId)
-            })
-            .first()
-
-        if (!hasAccessToArea) {
-            return sendErrorResponse(response, 403, 'You do not have access to this area')
-        }
-
-        const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-        const fromDate = dateFrom || today
-        const toDate = dateTo || today
-
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
-            return sendErrorResponse(response, 400, 'Invalid dateFrom format. Use YYYY-MM-DD')
-        }
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
-            return sendErrorResponse(response, 400, 'Invalid dateTo format. Use YYYY-MM-DD')
-        }
-
-        try {
-            const areaLockers = await Locker.query()
-            .where('area_id', areaId)
-            .select('serial_number')
-
-            if (areaLockers.length === 0) {
-            return sendSuccessResponse(response, 200, 'Movements retrieved successfully', {
-                items: []
-            })
-            }
-
-            const serialNumbers = areaLockers.map(locker => locker.serialNumber)
-
-            const db = await getDb('lockity_db')
-            const collection = db.collection('lockers_logs')
-
-            const mongoFilters = {
-            "locker.locker_serial_number": { $in: serialNumbers },
-            "action": { $in: ['opening', 'closing', 'failed_attempt'] },
-            "timestamp": {
-                $gte: new Date(`${fromDate}T00:00:00.000Z`),
-                $lte: new Date(`${toDate}T23:59:59.999Z`)
-            }
-            }
-
-            const aggregationPipeline = [
-            {
-                $match: mongoFilters
-            },
-            {
-                $group: {
-                _id: {
-                    $dateToString: {
-                    format: "%Y-%m-%d",
-                    date: "$timestamp"
-                    }
-                },
-                count: { $sum: 1 }
-                }
-            },
-            {
-                $sort: { "_id": 1 }
-            }
-            ]
-
-            const aggregationResults = await collection.aggregate(aggregationPipeline).toArray()
-
-            const movementsByDate = new Map()
-            aggregationResults.forEach(result => {
-            movementsByDate.set(result._id, result.count)
-            })
-
-            const items = []
-            const startDate = new Date(fromDate)
-            const endDate = new Date(toDate)
-
-            for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
-            const dateString = currentDate.toISOString().split('T')[0]
-            const count = movementsByDate.get(dateString) || 0
-            
-            items.push({
-                date: dateString,
-                count: count
-            })
-            }
-
-            return sendSuccessResponse(response, 200, 'Movements retrieved successfully', {
-            items
-            })
-
-        } catch (error) {
-            await new SlackService().sendExceptionMessage(error, 500)
-            return sendErrorResponse(response, 500, 'Error retrieving area movements')
-        }
-    }
 
     async getOrganizationMovements({ request, response, passportUser }: HttpContext) {
         const organizationId = Number(request.param('organizationId'))
