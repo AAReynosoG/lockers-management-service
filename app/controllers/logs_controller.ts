@@ -394,6 +394,7 @@ export default class LogsController {
                 area: log.locker?.area_name || '',
                 user: log.performed_by?.full_name || '',
                 email: log.performed_by?.email || '',
+                role: log.performed_by?.role || '',
                 status: status,
                 date_time: dateTime
             }
