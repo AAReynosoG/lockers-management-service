@@ -53,7 +53,7 @@ export default class LockersConfigsController {
 
       return {
         id_usuario: ap.userId.toString(),
-        nombre_usuario: `${ap.user.name} ${ap.user.lastName}`,
+        nombre_usuario: `${ap.user.name}`,
         cajones_usuario: [...new Set(compartments)],
         rol: userRoleForThisLocker?.role || null
       }
