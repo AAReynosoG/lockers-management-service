@@ -31,22 +31,12 @@ router
     router.group(() => {
       router.get('/:lockerId/compartments', [LockerController, 'getLockerCompartments'])
         .use(middleware.validateNumericParams(['lockerId']))
-      
       router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
       router.get('/activities', [LogsController, 'getLockerActivities'])
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
         .use(middleware.validateNumericParams(['organizationId']))
       router.get('compartment/status/:serialNumber/:compartmentNumber', [LockerController, 'getCompartmentStatus'])
         .use(middleware.validateNumericParams(['compartmentNumber']))
-      
-      router.get(':role', [LockerController, 'getLockers'])
-      router.put('', [LockerController, 'moveLockerToArea'])
-      router.put(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
-        .use(middleware.validateNumericParams(['lockerId', 'compartmentNumber']))
-      router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
-        .use(middleware.validateNumericParams(['lockerId', 'userId']))
-      router.get(':areaId/:role', [LockerController, 'getAreaLockers'])
-        .use(middleware.validateNumericParams(['areaId']))
 
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
         .use(middleware.validateNumericParams(['lockerId']))
@@ -56,6 +46,16 @@ router
         .use(middleware.validateNumericParams(['lockerId']))
       router.delete(':lockerId/schedules/delete', [ScheduleController, 'deleteSchedule'])
         .use(middleware.validateNumericParams(['lockerId']))
+      
+      router.get(':role', [LockerController, 'getLockers'])
+      router.put('', [LockerController, 'moveLockerToArea'])
+      router.put(':lockerId/:compartmentNumber/users', [LockerController, 'assignUserToCompartment'])
+        .use(middleware.validateNumericParams(['lockerId', 'compartmentNumber']))
+        
+      router.delete(':lockerId/:userId', [LockerController, 'removeUserAccessToCompartment'])
+        .use(middleware.validateNumericParams(['lockerId', 'userId']))
+      router.get(':areaId/:role', [LockerController, 'getAreaLockers'])
+        .use(middleware.validateNumericParams(['areaId']))
     }).prefix('/lockers')
 
     router.group(() => { 
