@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Handlebars from 'handlebars';
 import { fileURLToPath } from 'node:url'
+import { SlackService } from './slack_service.js';
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -30,5 +31,27 @@ export class ResendService {
       subject,
       html
     });
+  }
+
+  async sendContactUsEmail(to: string, subject: string, text: string) {
+
+    try {
+      const result = await this.resend.emails.send({
+        from: process.env.RESEND_FROM!,
+        to,
+        subject,
+        text
+      });
+
+      
+      if (result.error) {
+        await new SlackService().sendExceptionMessage(result.error, 500)
+      }
+
+      return result
+      
+    } catch (error) {
+      await new SlackService().sendExceptionMessage(error, 500)
+    }
   }
 }

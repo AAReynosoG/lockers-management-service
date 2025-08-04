@@ -8,6 +8,7 @@ const ScheduleController = () => import('#controllers/schedules_controller')
 const AreaController = () => import('#controllers/areas_controller')
 const LogsController = () => import('#controllers/logs_controller')
 const DeviceController = () => import('#controllers/devices_controller')
+const ContactUsController = () => import('#controllers/contact_us_controller')
 
 router
   .group(() => {
@@ -67,6 +68,8 @@ router
   })
   .use(middleware.passportAuth())
   .prefix('/api')
+
+  router.post('/api/contact', [ContactUsController, 'contactUsEmail']).use(middleware.publicAuth())
 
   router
     .group(() => {
