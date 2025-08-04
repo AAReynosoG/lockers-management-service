@@ -76,6 +76,8 @@ router
       router.put(':serialNumber/:compartmentNumber/:status', [LockerConfigController, 'updateCompartmentStatus'])
       .use(middleware.validateNumericParams(['compartmentNumber']))
       router.post('store-log', [LogsController, 'storeAccessLogs'])
+      router.post('still-open-alert/:serialNumber/:compartmentNumber', [DeviceController, 'sendStillOpenAlert'])
+      .use(middleware.validateNumericParams(['compartmentNumber']))
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
 

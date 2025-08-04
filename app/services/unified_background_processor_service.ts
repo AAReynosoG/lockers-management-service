@@ -119,7 +119,7 @@ export default class UnifiedBackgroundProcessor {
       const message = actionMessages[action as keyof typeof actionMessages]
       if (!message) return
 
-      const title = 'Locker Activity Alert'
+      const title = '⚠️ Locker Activity Alert'
       const body = `Hey! Compartment ${compartmentNumber} of locker ${locker.serialNumber} ${message}`
       
       const notificationData = {
