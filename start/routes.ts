@@ -29,14 +29,14 @@ router
     }).prefix('/organizations')
 
     router.group(() => {
-      router.get('/:lockerId/compartments', [LockerController, 'getLockerCompartments'])
-        .use(middleware.validateNumericParams(['lockerId']))
       router.get('no-schedules', [LockerController, 'lockersWithoutSchedules'])
       router.get('/activities', [LogsController, 'getLockerActivities'])
       router.get('/user-list/:organizationId', [LockerController, 'getUsersWithLockersByOrganization'])
         .use(middleware.validateNumericParams(['organizationId']))
       router.get('compartment/status/:serialNumber/:compartmentNumber', [LockerController, 'getCompartmentStatus'])
         .use(middleware.validateNumericParams(['compartmentNumber']))
+      router.get('/:lockerId/compartments/:role', [LockerController, 'getLockerCompartments'])
+        .use(middleware.validateNumericParams(['lockerId']))
 
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
         .use(middleware.validateNumericParams(['lockerId']))
@@ -81,6 +81,8 @@ router
       router.post('store-log', [LogsController, 'storeAccessLogs'])
       router.post('still-open-alert/:serialNumber/:compartmentNumber', [DeviceController, 'sendStillOpenAlert'])
       .use(middleware.validateNumericParams(['compartmentNumber']))
+      router.put('update-component', [LockerConfigController, 'updateLockerComponent'])
+      router.get('components/:serialNumber/:status', [LockerConfigController, 'getLockerComponents'])
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
 

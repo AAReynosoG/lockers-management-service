@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { createLockerValidator } from '#validators/locker'
+import { createLockerValidator, updateLockerComponentValidator } from '#validators/locker'
 import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Compartment from '#models/compartment'
@@ -308,5 +308,115 @@ export default class LockersConfigsController {
     }
     
     return sendSuccessResponse(response, 200, 'Compartment status updated successfully.')
+  }
+
+  async updateLockerComponent({ request, response }: HttpContext) {
+    const payload = await request.validateUsing(updateLockerComponentValidator)
+
+    const locker = await Locker.query()
+      .where('serial_number', payload.serial_number)
+      .first()
+
+    if (!locker) {
+      return sendErrorResponse(response, 404, 'Locker not found')
+    }
+
+    const oldComponent = await LockerComponent.query()
+      .where('id', payload.old_component_id)
+      .andWhere('locker_id', locker.id)
+      .first()
+
+    if (!oldComponent) {
+      return sendErrorResponse(response, 404, 'Component not found')
+    }
+
+    try {
+      oldComponent.status = payload.old_component_status
+      await oldComponent.save()
+
+      const newComponent = await LockerComponent.create({
+        lockerId: locker.id,
+        type: payload.new_component.type,
+        model: payload.new_component.model,
+        status: 'active'
+      })
+
+      await Promise.all(
+        payload.new_component.pins.map(pin => 
+          LockerComponentsPin.create({
+            componentId: newComponent.id,
+            pinName: pin.pin_name,
+            pinNumber: pin.pin_number
+          })
+        )
+      )
+
+      return sendSuccessResponse(response, 200, 'Component updated successfully', {
+        old_component: {
+          id: oldComponent.id,
+          status: oldComponent.status
+        },
+        new_component: {
+          id: newComponent.id,
+          type: newComponent.type,
+          model: newComponent.model,
+          status: newComponent.status
+        }
+      })
+
+    } catch (error) {
+      return sendErrorResponse(response, 500, 'Error updating component')
+    }
+  }
+
+  async getLockerComponents({ request, response }: HttpContext) {
+    const serialNumber = String(request.param('serialNumber'))
+    const status = String(request.param('status'))
+
+    const allowedStatuses = ['active', 'inactive', 'replaced'] as const
+    if (!allowedStatuses.includes(status as any)) {
+      return sendErrorResponse(response, 400, 'Invalid status. Allowed values: active, inactive, replaced')
+    }
+
+    const locker = await Locker.query()
+      .where('serial_number', serialNumber)
+      .first()
+
+    if (!locker) {
+      return sendErrorResponse(response, 404, 'Locker not found')
+    }
+
+    try {
+      let components
+
+      if (status === 'active') {
+        components = await LockerComponent.query()
+          .where('locker_id', locker.id)
+          .andWhere('status', 'active')
+          .preload('pins', (pinQuery) => {
+            pinQuery.select(['id', 'component_id', 'pin_name', 'pin_number'])
+          })
+          .select(['id', 'type', 'model', 'status', 'created_at', 'updated_at'])
+      } else {
+        components = await LockerComponent.query()
+          .where('locker_id', locker.id)
+          .andWhereIn('status', ['inactive', 'replaced'])
+          .preload('pins', (pinQuery) => {
+            pinQuery.select(['id', 'component_id', 'pin_name', 'pin_number'])
+          })
+          .select(['id', 'type', 'model', 'status', 'created_at', 'updated_at'])
+      }
+
+      return sendSuccessResponse(response, 200, `${status} components retrieved successfully`, {
+        locker_id: locker.id,
+        serial_number: locker.serialNumber,
+        status_filter: status,
+        components_count: components.length,
+        components: components
+      })
+
+    } catch (error) {
+      return sendErrorResponse(response, 500, 'Error retrieving components')
+    }
   }
 }

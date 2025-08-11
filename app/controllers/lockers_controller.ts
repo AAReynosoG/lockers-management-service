@@ -31,6 +31,7 @@ export default class LockersController {
 
     const { page, limit } = pagination
     const lockerId = Number(request.param('lockerId'))
+    const role = request.param('role')
 
     const locker = await Locker
       .query()

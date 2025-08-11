@@ -17,3 +17,21 @@ export const moveLockerToAreaValidator = vine.compile(
     new_schedule: vine.array(baseScheduleSchema).optional(),
   })
 )
+
+export const updateLockerComponentValidator = vine.compile(
+  vine.object({
+    serial_number: vine.string().trim().maxLength(100),
+    old_component_id: vine.number().positive(),
+    old_component_status: vine.enum(['replaced', 'inactive']),
+    new_component: vine.object({
+      type: vine.string().trim().maxLength(100),
+      model: vine.string().trim().maxLength(100),
+      pins: vine.array(
+        vine.object({
+          pin_name: vine.string().trim().maxLength(100),
+          pin_number: vine.number().positive().max(255)
+        })
+      ).minLength(1)
+    })
+  })
+)
