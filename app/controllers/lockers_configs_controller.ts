@@ -433,7 +433,18 @@ export default class LockersConfigsController {
         serial_number: locker.serialNumber,
         status_filter: status,
         components_count: components.length,
-        components: components
+        components: components.map(component => ({
+          id: component.id,
+          type: component.type,
+          model: component.model,
+          status: component.status,
+          pins: component.pins.map(pin => ({
+            id: pin.id,
+            component_id: pin.componentId,
+            pin_name: pin.pinName,
+            pin_number: pin.pinNumber
+          }))
+        }))
       })
 
     } catch (error) {
