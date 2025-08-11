@@ -4,6 +4,8 @@ import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Compartment from '#models/compartment'
 import LockerTopic from '#models/locker_topic'
+import LockerComponent from '#models/locker_component'
+import LockerComponentsPin from '#models/locker_components_pin'
 
 export default class LockersConfigsController {
   async getLockerConfig({ request, response }: HttpContext) {
@@ -42,6 +44,15 @@ export default class LockersConfigsController {
       topicsObject[key] = topic.topic
     })
 
+    const components = await LockerComponent
+      .query()
+      .where('locker_id', locker.id)
+      .preload('pins', (pinQuery) => {
+        pinQuery.select(['id', 'component_id', 'pin_name', 'pin_number'])
+      })
+      .select(['id', 'type', 'model', 'status'])
+
+    
     const users = lockerWithRelations.accessPermissions.map((ap) => {
       const compartments = ap.accessPermissionCompartments.map((apc) => {
         return apc.compartment.compartmentNumber.toString()
@@ -63,7 +74,8 @@ export default class LockersConfigsController {
       initial_config: {
         id_locker: locker.id.toString(),
         topics: topicsObject,
-        users: users
+        users: users,
+        components: components
       }
     })
   }
@@ -79,8 +91,106 @@ export default class LockersConfigsController {
       serialNumber: payload.serial_number
     })
 
+    const components = [
+      {
+        lockerId: locker.id,
+        type: 'display',
+        model: 'DISPLAY-1',
+        status: "active" as "active",
+        pins: [
+          { pinName: 'SCL', pinNumber: 22 },
+          { pinName: 'SDA', pinNumber: 21 },
+        ]
+      },
+      
+      {
+        lockerId: locker.id,
+        type: 'clock',
+        model: 'CLOCK-1',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'CLK', pinNumber: 18 },
+          { pinName: 'DAT', pinNumber: 23 },
+          { pinName: 'RSY', pinNumber: 19 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'buzzer',
+        model: 'BUZZER-1',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'signal', pinNumber: 18 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'servo',
+        model: 'SERVO-1',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'signal', pinNumber: 13 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'servo',
+        model: 'SERVO-2',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'signal', pinNumber: 14 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'servo',
+        model: 'SERVO-3',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'signal', pinNumber: 12 },
+        ]
+      },
 
-    const commandBase = `/${locker.serialNumber}/command`
+      {
+        lockerId: locker.id,
+        type: 'led',
+        model: 'LED-1',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'color', pinNumber: 18 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'led',
+        model: 'LED-2',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'color', pinNumber: 18 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'led',
+        model: 'LED-3',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'color', pinNumber: 18 },
+        ]
+      },
+      {
+        lockerId: locker.id,
+        type: 'fingerprint',
+        model: 'FINGERPRINT-1',
+        status: "active" as "active",        
+        pins: [
+          { pinName: 'Tx', pinNumber: 16 },
+          { pinName: 'Rx', pinNumber: 17 },
+        ]
+      }
+    ]
+
+    const commandBase = `${locker.serialNumber}/command`
     const topics = [
       `${locker.serialNumber}/action/change`,
       `${commandBase}/config`,
@@ -99,6 +209,27 @@ export default class LockersConfigsController {
           topic: topic
         })
       )
+    )
+
+    await Promise.all(
+      components.map(async (component) => {
+        const createdComponent = await LockerComponent.create({
+          lockerId: component.lockerId,
+          type: component.type,
+          model: component.model,
+          status: component.status
+        })
+
+        await Promise.all(
+          component.pins.map(pin => 
+            LockerComponentsPin.create({
+              componentId: createdComponent.id,
+              pinName: pin.pinName,
+              pinNumber: pin.pinNumber
+            })
+          )
+        )
+      })
     )
 
     await Promise.all(
