@@ -35,7 +35,7 @@ router
         .use(middleware.validateNumericParams(['organizationId']))
       router.get('compartment/status/:serialNumber/:compartmentNumber', [LockerController, 'getCompartmentStatus'])
         .use(middleware.validateNumericParams(['compartmentNumber']))
-      router.get('/:lockerId/compartments/:role', [LockerController, 'getLockerCompartments'])
+      router.get('/:lockerId/compartments', [LockerController, 'getLockerCompartments'])
         .use(middleware.validateNumericParams(['lockerId']))
 
       router.post(':lockerId/schedules', [ScheduleController, 'createSchedule'])
