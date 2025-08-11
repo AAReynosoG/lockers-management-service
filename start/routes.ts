@@ -83,6 +83,7 @@ router
       .use(middleware.validateNumericParams(['compartmentNumber']))
       router.put('update-component', [LockerConfigController, 'updateLockerComponent'])
       router.get('components/:serialNumber/:status', [LockerConfigController, 'getLockerComponents'])
+      router.post('add-component', [LockerConfigController, 'addLockerComponent'])
   })
   .prefix('/api/locker-config').use(middleware.iotAuth())
 

@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { createLockerValidator, updateLockerComponentValidator } from '#validators/locker'
+import { createLockerValidator, updateLockerComponentValidator, addLockerComponentValidator } from '#validators/locker'
 import Locker from '#models/locker'
 import { sendErrorResponse, sendSuccessResponse } from '../helpers/response.js'
 import Compartment from '#models/compartment'
@@ -120,7 +120,7 @@ export default class LockersConfigsController {
         model: 'BUZZER-1',
         status: "active" as "active",        
         pins: [
-          { pinName: 'signal', pinNumber: 18 },
+          { pinName: 'signal', pinNumber: 21 },
         ]
       },
       {
@@ -157,7 +157,7 @@ export default class LockersConfigsController {
         model: 'LED-1',
         status: "active" as "active",        
         pins: [
-          { pinName: 'color', pinNumber: 18 },
+          { pinName: 'color', pinNumber: 26 },
         ]
       },
       {
@@ -166,7 +166,7 @@ export default class LockersConfigsController {
         model: 'LED-2',
         status: "active" as "active",        
         pins: [
-          { pinName: 'color', pinNumber: 18 },
+          { pinName: 'color', pinNumber: 25 },
         ]
       },
       {
@@ -175,7 +175,7 @@ export default class LockersConfigsController {
         model: 'LED-3',
         status: "active" as "active",        
         pins: [
-          { pinName: 'color', pinNumber: 18 },
+          { pinName: 'color', pinNumber: 32 },
         ]
       },
       {
@@ -331,6 +331,27 @@ export default class LockersConfigsController {
     }
 
     try {
+      const newPinNumbers = payload.new_component.pins.map(pin => pin.pin_number)
+      
+      const existingPins = await LockerComponentsPin.query()
+        .whereIn('component_id', function (query) {
+          query.select('id')
+            .from('locker_components')
+            .where('locker_id', locker.id)
+            .where('status', 'active')
+            .whereNot('id', payload.old_component_id)
+        })
+        .whereIn('pin_number', newPinNumbers)
+
+      if (existingPins.length > 0) {
+        const duplicatedPins = existingPins.map(pin => pin.pinNumber)
+        return sendErrorResponse(
+          response, 
+          400, 
+          `Pin numbers already in use by other active components: ${duplicatedPins.join(', ')}`
+        )
+      }
+
       oldComponent.status = payload.old_component_status
       await oldComponent.save()
 
@@ -417,6 +438,85 @@ export default class LockersConfigsController {
 
     } catch (error) {
       return sendErrorResponse(response, 500, 'Error retrieving components')
+    }
+  }
+
+  async addLockerComponent({ request, response }: HttpContext) {
+    const payload = await request.validateUsing(addLockerComponentValidator)
+
+    const locker = await Locker.query()
+      .where('serial_number', payload.serial_number)
+      .first()
+
+    if (!locker) {
+      return sendErrorResponse(response, 404, 'Locker not found')
+    }
+
+    const restrictedTypes = ['fingerprint', 'clock', 'display']
+    if (restrictedTypes.includes(payload.component.type.toLowerCase())) {
+      return sendErrorResponse(
+        response, 
+        400, 
+        `Cannot add ${payload.component.type} components due to analog pin limitations on ESP32`
+      )
+    }
+
+    try {
+      const newPinNumbers = payload.component.pins.map(pin => pin.pin_number)
+      
+      const existingPins = await LockerComponentsPin.query()
+        .whereIn('component_id', function (query) {
+          query.select('id')
+            .from('locker_components')
+            .where('locker_id', locker.id)
+            .where('status', 'active')
+        })
+        .whereIn('pin_number', newPinNumbers)
+
+      if (existingPins.length > 0) {
+        const duplicatedPins = existingPins.map(pin => pin.pinNumber)
+        return sendErrorResponse(
+          response, 
+          400, 
+          `Pin numbers already in use by active components: ${duplicatedPins.join(', ')}`
+        )
+      }
+
+      const newComponent = await LockerComponent.create({
+        lockerId: locker.id,
+        type: payload.component.type,
+        model: payload.component.model,
+        status: 'active'
+      })
+
+      await Promise.all(
+        payload.component.pins.map(pin => 
+          LockerComponentsPin.create({
+            componentId: newComponent.id,
+            pinName: pin.pin_name,
+            pinNumber: pin.pin_number
+          })
+        )
+      )
+
+      await newComponent.load('pins')
+
+      return sendSuccessResponse(response, 201, 'Component added successfully', {
+        component: {
+          id: newComponent.id,
+          type: newComponent.type,
+          model: newComponent.model,
+          status: newComponent.status,
+          pins: newComponent.pins.map(pin => ({
+            id: pin.id,
+            pin_name: pin.pinName,
+            pin_number: pin.pinNumber
+          }))
+        }
+      })
+
+    } catch (error) {
+      return sendErrorResponse(response, 500, 'Error adding component')
     }
   }
 }
