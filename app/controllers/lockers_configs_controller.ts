@@ -394,7 +394,7 @@ export default class LockersConfigsController {
     const serialNumber = String(request.param('serialNumber'))
     const status = String(request.param('status'))
 
-    const allowedStatuses = ['active', 'inactive', 'replaced'] as const
+    const allowedStatuses = ['active', 'replaced'] as const
     if (!allowedStatuses.includes(status as any)) {
       return sendErrorResponse(response, 400, 'Invalid status. Allowed values: active, inactive, replaced')
     }
@@ -421,7 +421,7 @@ export default class LockersConfigsController {
       } else {
         components = await LockerComponent.query()
           .where('locker_id', locker.id)
-          .andWhereIn('status', ['inactive', 'replaced'])
+          .andWhere('status', 'replaced')
           .preload('pins', (pinQuery) => {
             pinQuery.select(['id', 'component_id', 'pin_name', 'pin_number'])
           })
